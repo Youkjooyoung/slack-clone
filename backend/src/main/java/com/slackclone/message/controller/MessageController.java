@@ -1,0 +1,70 @@
+package com.slackclone.message.controller;
+
+import com.slackclone.common.response.ApiResponse;
+import com.slackclone.message.dto.EditMessageRequest;
+import com.slackclone.message.dto.MessagePageResponse;
+import com.slackclone.message.dto.MessageResponse;
+import com.slackclone.message.dto.SendMessageRequest;
+import com.slackclone.message.service.MessageService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.web.bind.annotation.*;
+
+import java.security.Principal;
+import java.util.UUID;
+
+@RestController
+@RequiredArgsConstructor
+public class MessageController {
+
+    private final MessageService messageService;
+
+    // ─── REST: 메시지 페이징 조회 ─────────────────────────────────────────────
+
+    @GetMapping("/api/workspaces/{workspaceId}/channels/{channelId}/messages")
+    public ResponseEntity<ApiResponse<MessagePageResponse>> getMessages(
+            @PathVariable UUID workspaceId,
+            @PathVariable UUID channelId,
+            @RequestParam(required = false) String cursor) {
+        return ResponseEntity.ok(
+                ApiResponse.success(messageService.getMessages(workspaceId, channelId, cursor, null)));
+    }
+
+    @PutMapping("/api/messages/{messageId}")
+    public ResponseEntity<ApiResponse<MessageResponse>> editMessage(
+            @PathVariable UUID messageId,
+            @Valid @RequestBody EditMessageRequest request) {
+        return ResponseEntity.ok(
+                ApiResponse.success("메시지가 수정되었습니다.", messageService.editMessage(messageId, request.content())));
+    }
+
+    @DeleteMapping("/api/messages/{messageId}")
+    public ResponseEntity<ApiResponse<Void>> deleteMessage(@PathVariable UUID messageId) {
+        messageService.deleteMessage(messageId);
+        return ResponseEntity.ok(ApiResponse.success("메시지가 삭제되었습니다."));
+    }
+
+    @PostMapping("/api/workspaces/{workspaceId}/channels/{channelId}/read")
+    public ResponseEntity<ApiResponse<Void>> markAsRead(
+            @PathVariable UUID workspaceId,
+            @PathVariable UUID channelId) {
+        messageService.markAsRead(channelId);
+        return ResponseEntity.ok(ApiResponse.success("읽음 처리되었습니다."));
+    }
+
+    // ─── STOMP: 채널 메시지 전송 ──────────────────────────────────────────────
+
+    @MessageMapping("/channel/{workspaceId}/{channelId}/send")
+    public void sendMessage(
+            @DestinationVariable UUID workspaceId,
+            @DestinationVariable UUID channelId,
+            @Payload @Valid SendMessageRequest request,
+            Principal principal) {
+        messageService.sendMessage(workspaceId, channelId, request,
+                principal != null ? principal.getName() : null);
+    }
+}
