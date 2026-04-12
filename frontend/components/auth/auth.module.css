@@ -8,7 +8,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(160deg, #3e0047 0%, #611f69 45%, #1a0020 100%);
+  background: linear-gradient(160deg, #0a1628 0%, #1e3a5f 45%, #0a0f1a 100%);
   padding: 1.5rem;
   position: relative;
   overflow: hidden;
@@ -56,7 +56,7 @@
 
 /* ── Branded header section ── */
 .header {
-  background: linear-gradient(135deg, #4a154b 0%, #611f69 100%) !important;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%) !important;
   padding: 2.25rem 2.25rem 1.875rem !important;
   text-align: center;
 }
@@ -125,7 +125,7 @@
   width: 100%;
   height: 46px !important;
   margin-top: 0.5rem;
-  background: linear-gradient(135deg, #4a154b 0%, #611f69 100%) !important;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%) !important;
   border: none !important;
   border-radius: 10px !important;
   font-size: 0.9375rem !important;
@@ -134,18 +134,18 @@
   letter-spacing: 0.01em;
   cursor: pointer;
   transition: opacity 0.15s, transform 0.12s, box-shadow 0.15s !important;
-  box-shadow: 0 4px 14px rgba(74, 21, 75, 0.45) !important;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.45) !important;
 }
 
 .submitButton:hover:not(:disabled) {
   opacity: 0.88 !important;
   transform: translateY(-1px) !important;
-  box-shadow: 0 6px 20px rgba(74, 21, 75, 0.55) !important;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.55) !important;
 }
 
 .submitButton:active:not(:disabled) {
   transform: translateY(0) !important;
-  box-shadow: 0 2px 8px rgba(74, 21, 75, 0.4) !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.4) !important;
 }
 
 .submitButton:disabled {
@@ -166,14 +166,14 @@
 }
 
 .footerLink {
-  color: #611f69;
+  color: #1e3a5f;
   font-weight: 600;
   text-decoration: none;
   transition: color 0.1s;
 }
 
 .footerLink:hover {
-  color: #4a154b;
+  color: #0f172a;
   text-decoration: underline;
 }
 

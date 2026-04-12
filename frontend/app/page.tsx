@@ -1,4 +1,9 @@
+'use client'
+
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuthStore } from '@/store/authStore'
 import styles from './home.module.css'
 
 const features = [
@@ -54,6 +59,14 @@ const steps = [
 ]
 
 export default function Home() {
+  const router = useRouter()
+  const { accessToken } = useAuthStore()
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  useEffect(() => {
+    setIsLoggedIn(!!accessToken)
+  }, [accessToken])
+
   return (
     <div className={styles.page}>
       {/* ── Navbar ── */}
@@ -63,8 +76,14 @@ export default function Home() {
           <span className={styles.navLogoText}>SlackClone</span>
         </Link>
         <div className={styles.navActions}>
-          <Link href="/auth/login" className={styles.navLink}>로그인</Link>
-          <Link href="/auth/register" className={styles.navBtn}>무료로 시작하기</Link>
+          {isLoggedIn ? (
+            <Link href="/workspace" className={styles.navBtn}>워크스페이스로 이동</Link>
+          ) : (
+            <>
+              <Link href="/auth/login" className={styles.navLink}>로그인</Link>
+              <Link href="/auth/register" className={styles.navBtn}>무료로 시작하기</Link>
+            </>
+          )}
         </div>
       </nav>
 
@@ -109,7 +128,7 @@ export default function Home() {
             <div className={styles.previewBody}>
               {/* Icon Rail */}
               <div className={styles.previewIconRail}>
-                <div className={`${styles.previewRailIcon}`} style={{ background: 'linear-gradient(135deg,#4a154b,#611f69)', color: '#fff', fontWeight: 800, fontSize: '0.75rem' }}>T</div>
+                <div className={`${styles.previewRailIcon}`} style={{ background: 'linear-gradient(135deg,#0f172a,#1e3a5f)', color: '#fff', fontWeight: 800, fontSize: '0.75rem' }}>T</div>
                 {['🏠', '💬', '🔔', '📁'].map((icon, i) => (
                   <div key={i} className={`${styles.previewRailIcon} ${i === 1 ? styles.previewRailIconActive : ''}`}>{icon}</div>
                 ))}

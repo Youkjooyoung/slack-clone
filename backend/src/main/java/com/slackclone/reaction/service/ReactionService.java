@@ -83,6 +83,10 @@ public class ReactionService {
         DirectMessage dm = dmRepository.findById(dmId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.DM_NOT_FOUND));
 
+        if (!dm.getSender().getId().equals(user.getId()) && !dm.getReceiver().getId().equals(user.getId())) {
+            throw new BusinessException(ErrorCode.DM_ACCESS_DENIED);
+        }
+
         Reaction reaction = Reaction.builder()
                 .directMessage(dm)
                 .user(user)
@@ -90,7 +94,16 @@ public class ReactionService {
                 .build();
         reactionRepository.save(reaction);
 
-        return ReactionResponse.from(reaction);
+        ReactionResponse response = ReactionResponse.from(reaction);
+
+        String pair = dm.getSender().getId().compareTo(dm.getReceiver().getId()) < 0
+                ? dm.getSender().getId() + "_" + dm.getReceiver().getId()
+                : dm.getReceiver().getId() + "_" + dm.getSender().getId();
+
+        messagingTemplate.convertAndSend(
+                "/topic/dm/" + dm.getWorkspace().getId() + "/" + pair + "/reactions", response);
+
+        return response;
     }
 
     @Transactional
@@ -99,6 +112,22 @@ public class ReactionService {
         Reaction reaction = reactionRepository
                 .findByDirectMessageIdAndUserIdAndEmoji(dmId, user.getId(), emoji)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REACTION_NOT_FOUND));
+
+        DirectMessage dm = dmRepository.findById(dmId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.DM_NOT_FOUND));
+
+        if (!dm.getSender().getId().equals(user.getId()) && !dm.getReceiver().getId().equals(user.getId())) {
+            throw new BusinessException(ErrorCode.DM_ACCESS_DENIED);
+        }
+
         reaction.softDelete();
+
+        String pair = dm.getSender().getId().compareTo(dm.getReceiver().getId()) < 0
+                ? dm.getSender().getId() + "_" + dm.getReceiver().getId()
+                : dm.getReceiver().getId() + "_" + dm.getSender().getId();
+
+        messagingTemplate.convertAndSend(
+                "/topic/dm/" + dm.getWorkspace().getId() + "/" + pair + "/reactions/remove",
+                ReactionResponse.from(reaction));
     }
 }

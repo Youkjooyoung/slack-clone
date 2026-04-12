@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -63,10 +63,27 @@ export function Sidebar({ workspaceId }: SidebarProps) {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
   const [profileDialogOpen, setProfileDialogOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
+  const [wsDropdownOpen, setWsDropdownOpen] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteError, setInviteError] = useState<string | null>(null)
   const [serverError, setServerError] = useState<string | null>(null)
   const [profileForm, setProfileForm] = useState({ displayName: '', statusMessage: '', statusEmoji: '' })
+  const notifRef = useRef<HTMLDivElement>(null)
+  const wsDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (notifOpen && notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false)
+      }
+      if (wsDropdownOpen && wsDropdownRef.current && !wsDropdownRef.current.contains(e.target as Node)) {
+        setWsDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [notifOpen, wsDropdownOpen])
 
   // Apply theme CSS variables
   useEffect(() => {
@@ -239,16 +256,6 @@ export function Sidebar({ workspaceId }: SidebarProps) {
           {workspace?.name?.charAt(0).toUpperCase() ?? 'W'}
         </div>
 
-        {/* Back to workspace list */}
-        <button
-          className={styles.iconTab}
-          onClick={() => router.push('/workspace')}
-          title="워크스페이스 목록"
-        >
-          <span className={styles.iconTabIcon}>⬅</span>
-          <span className={styles.iconTabLabel}>목록</span>
-        </button>
-
         {/* Main nav tabs */}
         {iconTabs.map((tab) => (
           <button
@@ -282,24 +289,43 @@ export function Sidebar({ workspaceId }: SidebarProps) {
 
       {/* ════════════ Side Panel ════════════ */}
       <div className={styles.sidePanel}>
-        {/* Back to workspace list button */}
-        <button
-          className={styles.backToWorkspaceBtn}
-          onClick={() => router.push('/workspace')}
-        >
-          ← 워크스페이스 목록
-        </button>
-
         {/* Workspace header */}
         <div className={styles.workspaceHeader}>
-          <span
-            className={styles.workspaceName}
-            onClick={() => router.push('/workspace')}
-          >
-            {workspace?.name ?? '...'}
-          </span>
+          <div ref={wsDropdownRef} style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+            <button
+              className={styles.workspaceNameBtn}
+              onClick={() => setWsDropdownOpen((o) => !o)}
+            >
+              <span className={styles.workspaceName}>
+                {workspace?.name ?? '...'}
+              </span>
+              <span className={styles.wsDropdownArrow}>{wsDropdownOpen ? '▲' : '▼'}</span>
+            </button>
+            {wsDropdownOpen && (
+              <div className={styles.wsDropdown}>
+                <button
+                  className={styles.wsDropdownItem}
+                  onClick={() => { setWsDropdownOpen(false); router.push('/workspace') }}
+                >
+                  ↩ 워크스페이스 목록
+                </button>
+                <button
+                  className={styles.wsDropdownItem}
+                  onClick={() => { setWsDropdownOpen(false); setInviteDialogOpen(true) }}
+                >
+                  ✉ 멤버 초대
+                </button>
+                <button
+                  className={styles.wsDropdownItem}
+                  onClick={() => { setWsDropdownOpen(false); handleLogout() }}
+                >
+                  🚪 로그아웃
+                </button>
+              </div>
+            )}
+          </div>
           <div className={styles.headerBtns}>
-            <div style={{ position: 'relative' }}>
+            <div ref={notifRef} style={{ position: 'relative' }}>
               <button
                 className={styles.newMsgBtn}
                 aria-label="알림"
@@ -312,6 +338,31 @@ export function Sidebar({ workspaceId }: SidebarProps) {
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
+              {/* Notification dropdown */}
+              {notifOpen && (
+                <div className={styles.notifPanel}>
+                  <div className={styles.notifHeader}>
+                    <span>알림</span>
+                    <button className={styles.notifReadAll} onClick={handleNotifReadAll}>모두 읽음</button>
+                  </div>
+                  {notifications.length === 0 ? (
+                    <div className={styles.notifEmpty}>새 알림이 없습니다.</div>
+                  ) : (
+                    <div className={styles.notifList}>
+                      {notifications.slice(0, 30).map((n) => (
+                        <div
+                          key={n.id}
+                          className={`${styles.notifItem} ${n.isRead ? styles.notifRead : ''}`}
+                          onClick={() => { handleNotifRead(n.id); setNotifOpen(false) }}
+                        >
+                          <p className={styles.notifTitle}>{n.title}</p>
+                          <p className={styles.notifContent}>{n.content}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <button
               className={styles.headerProfileBtn}
@@ -322,32 +373,6 @@ export function Sidebar({ workspaceId }: SidebarProps) {
             </button>
           </div>
         </div>
-
-        {/* Notification dropdown */}
-        {notifOpen && (
-          <div className={styles.notifPanel}>
-            <div className={styles.notifHeader}>
-              <span>알림</span>
-              <button className={styles.notifReadAll} onClick={handleNotifReadAll}>모두 읽음</button>
-            </div>
-            {notifications.length === 0 ? (
-              <div className={styles.notifEmpty}>새 알림이 없습니다.</div>
-            ) : (
-              <div className={styles.notifList}>
-                {notifications.slice(0, 30).map((n) => (
-                  <div
-                    key={n.id}
-                    className={`${styles.notifItem} ${n.isRead ? styles.notifRead : ''}`}
-                    onClick={() => { handleNotifRead(n.id); setNotifOpen(false) }}
-                  >
-                    <p className={styles.notifTitle}>{n.title}</p>
-                    <p className={styles.notifContent}>{n.content}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
 
         {/* ── Tab content ── */}
         {activeTab === 'home' && (

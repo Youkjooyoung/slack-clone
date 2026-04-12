@@ -50,7 +50,7 @@ export function LoginForm() {
         // 실제 user 정보 조회 후 갱신
         const meRes = await userApi.getMe()
         const me = meRes.data.data
-        setAuth({ id: me.id, email: me.email, username: me.username, avatarUrl: me.avatarUrl }, accessToken, refreshToken)
+        setAuth({ id: me.id, email: me.email, username: me.username, avatarUrl: me.avatarUrl ?? undefined }, accessToken, refreshToken)
       } catch { /* 실패해도 계속 진행 */ }
       router.push('/workspace')
     },

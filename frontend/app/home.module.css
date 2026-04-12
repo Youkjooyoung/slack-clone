@@ -23,7 +23,7 @@
   justify-content: space-between;
   padding: 0 2.5rem;
   height: 64px;
-  background: rgba(74, 21, 75, 0.95);
+  background: rgba(15, 23, 42, 0.95);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -78,7 +78,7 @@
 .navBtn {
   font-size: 0.9375rem;
   font-weight: 700;
-  color: #4a154b;
+  color: #0f172a;
   background: #fff;
   border: none;
   border-radius: 8px;
@@ -99,7 +99,7 @@
 ════════════════════════════════════ */
 .hero {
   min-height: 100vh;
-  background: linear-gradient(160deg, #3e0047 0%, #611f69 50%, #1a0020 100%);
+  background: linear-gradient(160deg, #0a1628 0%, #1e3a5f 50%, #0a0f1a 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -174,7 +174,7 @@
 }
 
 .heroTitleAccent {
-  background: linear-gradient(135deg, #f8c8ff, #d4a4ff);
+  background: linear-gradient(135deg, #93c5fd, #60a5fa);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -206,7 +206,7 @@
   align-items: center;
   gap: 0.5rem;
   background: #fff;
-  color: #4a154b;
+  color: #0f172a;
   font-size: 1rem;
   font-weight: 700;
   padding: 0.875rem 1.75rem;
@@ -256,7 +256,7 @@
 }
 
 .heroPreviewInner {
-  background: #2c0c2e;
+  background: #0f1a2e;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 14px;
   overflow: hidden;
@@ -266,7 +266,7 @@
 /* Title bar */
 .previewBar {
   height: 38px;
-  background: #1f0821;
+  background: #0a1220;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: center;
@@ -327,7 +327,7 @@
 .previewSidebar {
   width: 168px;
   border-right: 1px solid rgba(255, 255, 255, 0.07);
-  background: #3a0c3c;
+  background: #152238;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -546,7 +546,7 @@
 .statNumber {
   font-size: 2.25rem;
   font-weight: 900;
-  color: #4a154b;
+  color: #0f172a;
   letter-spacing: -0.04em;
   line-height: 1;
   margin-bottom: 0.375rem;
@@ -572,7 +572,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #611f69;
+  color: #1e3a5f;
   margin-bottom: 1rem;
 }
 
@@ -646,7 +646,7 @@
    How it works
 ════════════════════════════════════ */
 .howItWorks {
-  background: #faf5fb;
+  background: #f0f4f8;
   padding: 5rem 2rem;
 }
 
@@ -674,14 +674,14 @@
   right: -1.25rem;
   top: 1.25rem;
   font-size: 1.25rem;
-  color: #d9b3e0;
+  color: #93c5fd;
 }
 
 .stepNumber {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #4a154b, #611f69);
+  background: linear-gradient(135deg, #0f172a, #1e3a5f);
   color: #fff;
   font-size: 1.0625rem;
   font-weight: 800;
@@ -708,7 +708,7 @@
    CTA Section
 ════════════════════════════════════ */
 .ctaSection {
-  background: linear-gradient(135deg, #4a154b 0%, #611f69 100%);
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
   padding: 5rem 2rem;
   text-align: center;
   position: relative;

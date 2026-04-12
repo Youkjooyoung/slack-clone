@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -45,23 +45,31 @@ const ROLE_LABEL: Record<string, string> = {
 }
 
 const WS_GRADIENTS = [
-  'linear-gradient(135deg, #4a154b 0%, #7c3aed 100%)',
+  'linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%)',
   'linear-gradient(135deg, #1164a3 0%, #0ea5e9 100%)',
   'linear-gradient(135deg, #007a5a 0%, #10b981 100%)',
   'linear-gradient(135deg, #c7224b 0%, #f43f5e 100%)',
   'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)',
-  'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
+  'linear-gradient(135deg, #1e3a5f 0%, #3b82f6 100%)',
 ]
 
 export default function WorkspaceListPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
-  const { clearAuth, user } = useAuthStore()
+  const { clearAuth, user, accessToken } = useAuthStore()
   const [open, setOpen] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
 
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!accessToken) {
+      router.replace('/auth/login')
+    }
+  }, [accessToken, router])
+
   function handleLogout() {
     clearAuth()
+    queryClient.clear()
     router.push('/auth/login')
   }
 

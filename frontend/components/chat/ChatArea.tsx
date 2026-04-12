@@ -8,6 +8,7 @@ import {
   KeyboardEvent,
   ChangeEvent,
   MouseEvent,
+  useMemo,
 } from 'react'
 import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
@@ -18,11 +19,13 @@ import { useLayoutStore } from '@/store/layoutStore'
 import type { Channel, ChatMessage, MessagePage, Reaction } from '@/types'
 import { FileUploadDropzone } from './FileUploadDropzone'
 import type { UploadedFile } from '@/hooks/useFileUpload'
+import { useMention, MentionDropdown } from '@/hooks/useMention'
 import { ThreadPanel } from './ThreadPanel'
 import { toast } from 'sonner'
 import styles from './chat.module.css'
 
 const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮']
+const EMOJI_PALETTE = ['😀','😂','🥲','😍','🤩','😎','🤔','😢','😡','🥳','👍','👎','👏','🙌','❤️','🔥','⭐','💯','✅','🎉','🚀','💬','📌','📎']
 const GROUP_THRESHOLD_MS = 5 * 60 * 1000 // 5분 이내 연속 메시지 → 그룹
 
 interface ChatAreaProps {
@@ -78,12 +81,36 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
   const { messages, setMessages, removeMessage, updateMessage } = useChatStore()
   const { inputMinHeight, setInputMinHeight } = useLayoutStore()
   const [inputHeight, setInputHeight] = useState(inputMinHeight)
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
+  const emojiPickerRef = useRef<HTMLDivElement>(null)
   const dragStartY = useRef(0)
   const dragStartH = useRef(0)
   const isDragging = useRef(false)
 
   // Sync from store when it changes (e.g. MorePanel preset change)
   useEffect(() => { setInputHeight(inputMinHeight) }, [inputMinHeight])
+
+  // Close emoji picker on outside click
+  useEffect(() => {
+    if (!emojiPickerOpen) return
+    function handleClickOutside(e: globalThis.MouseEvent) {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target as Node)) {
+        setEmojiPickerOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [emojiPickerOpen])
+
+  const insertEmoji = useCallback((emoji: string) => {
+    const ta = textareaRef.current
+    if (!ta) return
+    const { selectionStart: s, value } = ta
+    ta.value = value.slice(0, s) + emoji + value.slice(s)
+    ta.focus()
+    ta.setSelectionRange(s + emoji.length, s + emoji.length)
+    setEmojiPickerOpen(false)
+  }, [])
 
   const handleResizeStart = useCallback((e: MouseEvent<HTMLDivElement>) => {
     isDragging.current = true
@@ -215,6 +242,11 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
 
   const { sendMessage } = useWebSocket({ workspaceId, channelId: channel.id })
 
+  const {
+    mentionQuery, mentionIndex, setMentionIndex, filteredMembers,
+    handleMentionChange, handleMentionKeyDown, insertMention
+  } = useMention(workspaceId, textareaRef)
+
   // ── 스크롤 자동 하단 이동 ──────────────────────────────────────────────────
   const messageListRef = useRef<HTMLDivElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -263,9 +295,18 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
   }, [workspaceId, channel.id])
 
   const handleSend = useCallback(() => {
-    const text = textareaRef.current?.value.trim()
+    const text = textareaRef.current?.value.trim() ?? ''
     if (!text && attachedFiles.length === 0) return
-    sendMessage(text ?? '')
+
+    // 첨부 파일 URL을 메시지에 포함
+    const fileLinks = attachedFiles
+      .map((f) => f.attachment.fileUrl)
+      .filter(Boolean)
+      .join('\n')
+
+    const fullContent = [text, fileLinks].filter(Boolean).join('\n')
+    if (fullContent) sendMessage(fullContent)
+
     if (textareaRef.current) {
       textareaRef.current.value = ''
       textareaRef.current.style.height = 'auto'
@@ -292,7 +333,7 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
     setAttachedFiles(files)
   }, [])
 
-  function renderMessages() {
+  const renderedMessages = useMemo(() => {
     const result: JSX.Element[] = []
 
     for (let i = 0; i < channelMessages.length; i++) {
@@ -442,7 +483,7 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
       }
     }
     return result
-  }
+  }, [channelMessages, messageReactions, user?.id, editingId, editContent, handleEditStart, handleEditSubmit, handleEditKeyDown, handleDelete, toggleReaction])
 
   return (
     <div style={{ display: 'flex', flex: 1, overflow: 'hidden', height: '100%' }}>
@@ -502,7 +543,7 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
           className={styles.messageList}
           onScroll={checkAtBottom}
         >
-          {renderMessages()}
+        {renderedMessages}
 
           {hasNextPage && (
             <button
@@ -536,7 +577,11 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
           {/* Drag-to-resize handle */}
           <div className={styles.resizeHandle} onMouseDown={handleResizeStart} title="드래그해서 크기 조절" />
           <FileUploadDropzone onFilesChange={handleFilesChange}>
-            <div className={styles.inputBox}>
+            <div className={styles.inputBox} style={{ position: 'relative' }}>
+              <MentionDropdown
+                mentionQuery={mentionQuery} mentionIndex={mentionIndex} setMentionIndex={setMentionIndex}
+                filteredMembers={filteredMembers} insertMention={insertMention}
+              />
               <div className={styles.inputToolbar}>
                 <button className={styles.toolbarBtn} title="파일 첨부"
                   onClick={() => document.getElementById('file-upload-input')?.click()}>
@@ -564,7 +609,16 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
                     ta.focus()
                     ta.setSelectionRange(s + 1, s + 1 + (sel || '기울임').length)
                   }}>I</button>
-                <button className={styles.toolbarBtn} title="이모지">😊</button>
+                <div ref={emojiPickerRef} style={{ position: 'relative', display: 'inline-block' }}>
+                  <button className={styles.toolbarBtn} title="이모지" onClick={() => setEmojiPickerOpen((o) => !o)}>😊</button>
+                  {emojiPickerOpen && (
+                    <div className={styles.emojiPicker}>
+                      {EMOJI_PALETTE.map((emoji) => (
+                        <button key={emoji} className={styles.emojiPickerItem} onClick={() => insertEmoji(emoji)}>{emoji}</button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               <textarea
                 ref={textareaRef}
@@ -572,8 +626,8 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
                 placeholder={`#${channel.name}에 메시지 보내기`}
                 rows={1}
                 style={{ minHeight: inputHeight }}
-                onKeyDown={handleKeyDown}
-                onChange={handleAutoResize}
+                onKeyDown={(e) => handleMentionKeyDown(e, handleKeyDown)}
+                onChange={(e) => { handleAutoResize(e); handleMentionChange(e); }}
               />
               <div className={styles.inputFooter}>
                 <span className={styles.inputHint}>Enter로 전송 · Shift+Enter로 줄바꿈</span>

@@ -14,11 +14,11 @@ export interface ThemeVars {
 
 export const THEMES: Record<ThemeId, ThemeVars> = {
   aubergine: {
-    name: '보라빛',
-    swatch: '#611f69',
-    iconRailBg: '#1a1d21',
-    sidebarBgTop: '#3f0e40',
-    sidebarBgBottom: '#350d36',
+    name: '남색',
+    swatch: '#1e3a5f',
+    iconRailBg: '#0f172a',
+    sidebarBgTop: '#152238',
+    sidebarBgBottom: '#0e1a2e',
     activeItemBg: '#1164a3',
   },
   dark: {
