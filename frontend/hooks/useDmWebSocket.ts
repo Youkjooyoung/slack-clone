@@ -4,7 +4,7 @@ import { useEffect, useRef, useCallback } from 'react'
 import { Client, type IMessage, type IFrame } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
 import { useAuthStore } from '@/store/authStore'
-import type { DmMessage } from '@/types'
+import type { DmMessage, Reaction } from '@/types'
 
 const WS_URL = process.env.NEXT_PUBLIC_SOCKET_URL ?? 'http://localhost:8080'
 
@@ -15,6 +15,8 @@ interface UseDmWebSocketOptions {
   onMessage: (msg: DmMessage) => void
   onUpdate: (msg: DmMessage) => void
   onDelete: (dmId: string) => void
+  onReactionAdd?: (reaction: Reaction) => void
+  onReactionRemove?: (reaction: Reaction) => void
 }
 
 export function useDmWebSocket({
@@ -24,6 +26,8 @@ export function useDmWebSocket({
   onMessage,
   onUpdate,
   onDelete,
+  onReactionAdd,
+  onReactionRemove,
 }: UseDmWebSocketOptions) {
   const clientRef = useRef<Client | null>(null)
   const { accessToken } = useAuthStore()
@@ -63,6 +67,16 @@ export function useDmWebSocket({
         client.subscribe(`${topic}/delete`, (msg: IMessage) => {
           onDelete(msg.body)
         })
+        if (onReactionAdd) {
+          client.subscribe(`${topic}/reactions`, (msg: IMessage) => {
+            onReactionAdd(JSON.parse(msg.body) as Reaction)
+          })
+        }
+        if (onReactionRemove) {
+          client.subscribe(`${topic}/reactions/remove`, (msg: IMessage) => {
+            onReactionRemove(JSON.parse(msg.body) as Reaction)
+          })
+        }
       },
       onStompError: (_frame: IFrame) => {
         console.error('DM STOMP 연결 오류')
@@ -76,7 +90,7 @@ export function useDmWebSocket({
       client.deactivate()
       clientRef.current = null
     }
-  }, [accessToken, workspaceId, targetUserId, currentUserId, onMessage, onUpdate, onDelete])
+  }, [accessToken, workspaceId, targetUserId, currentUserId, onMessage, onUpdate, onDelete, onReactionAdd, onReactionRemove])
 
   return { sendMessage }
 }

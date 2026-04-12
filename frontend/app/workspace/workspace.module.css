@@ -1,7 +1,7 @@
 /* ── 전체 페이지 ── */
 .page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #1a0826 0%, #2d1050 40%, #1e0a3c 70%, #0f0820 100%);
+  background: linear-gradient(135deg, #0a1628 0%, #132d50 40%, #0e1f3c 70%, #080f20 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -19,7 +19,7 @@
   left: -200px;
   width: 600px;
   height: 600px;
-  background: radial-gradient(circle, rgba(124,58,237,0.15) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(30,58,95,0.25) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -30,7 +30,7 @@
   right: -200px;
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, rgba(74,21,75,0.2) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(15,23,42,0.3) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -47,12 +47,12 @@
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #7c3aed, #4a154b);
+  background: linear-gradient(135deg, #1e3a5f, #0f172a);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.25rem;
-  box-shadow: 0 4px 16px rgba(124,58,237,0.4);
+  box-shadow: 0 4px 16px rgba(30,58,95,0.4);
 }
 
 .brandName {
@@ -105,7 +105,7 @@
   width: 32px;
   height: 32px;
   border: 3px solid #f0f0f0;
-  border-top-color: #7c3aed;
+  border-top-color: #1e3a5f;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -160,7 +160,7 @@
 .retryBtn {
   padding: 0.625rem 1.5rem;
   border-radius: 8px;
-  background: linear-gradient(135deg, #4a154b, #7c3aed);
+  background: linear-gradient(135deg, #0f172a, #1e3a5f);
   color: #fff;
   border: none;
   font-size: 0.875rem;
@@ -214,7 +214,7 @@
 }
 
 .wsItem:hover {
-  background: #f7f4ff;
+  background: #f0f4f8;
 }
 
 .wsItem:hover .wsArrow {
@@ -226,7 +226,7 @@
   width: 52px;
   height: 52px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #4a154b 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
   color: #fff;
   font-size: 1.375rem;
   font-weight: 800;
@@ -234,7 +234,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(74,21,75,0.3);
+  box-shadow: 0 4px 12px rgba(15,23,42,0.3);
   text-transform: uppercase;
 }
 
@@ -260,8 +260,8 @@
   border-radius: 9999px;
   font-size: 0.6875rem;
   font-weight: 600;
-  background: #f0ebff;
-  color: #7c3aed;
+  background: #e8f0fe;
+  color: #1e3a5f;
 }
 
 .wsArrow {
@@ -291,7 +291,7 @@
   width: 100%;
   padding: 0.75rem;
   border-radius: 10px;
-  background: linear-gradient(135deg, #4a154b 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
   color: #fff;
   border: none;
   font-size: 0.9375rem;
@@ -302,7 +302,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  box-shadow: 0 4px 16px rgba(74,21,75,0.35);
+  box-shadow: 0 4px 16px rgba(15,23,42,0.35);
 }
 
 .createBtn:hover { opacity: 0.88; }
