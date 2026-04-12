@@ -39,6 +39,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/ws/**").permitAll()
+                .requestMatchers("/api/files/serve/**").permitAll()
                 .anyRequest().authenticated()
             )
             .exceptionHandling(e -> e
