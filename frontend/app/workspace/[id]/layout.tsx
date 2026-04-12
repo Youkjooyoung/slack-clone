@@ -1,15 +1,16 @@
 import { Sidebar } from '@/components/workspace/Sidebar'
 import styles from './layout.module.css'
 
-interface Props {
+type Props = {
   children: React.ReactNode
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
-export default function WorkspaceLayout({ children, params }: Props) {
+export default async function WorkspaceLayout({ children, params }: Props) {
+  const { id } = await params
   return (
     <div className={styles.layout}>
-      <Sidebar workspaceId={params.id} />
+      <Sidebar workspaceId={id} />
       <main className={styles.main}>{children}</main>
     </div>
   )

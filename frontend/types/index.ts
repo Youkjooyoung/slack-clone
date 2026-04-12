@@ -73,6 +73,36 @@ export interface Attachment {
   fileSize: number
 }
 
+export interface DmMessage {
+  id: string
+  workspaceId: string
+  senderId: string
+  senderUsername: string
+  senderDisplayName: string | null
+  senderAvatarUrl: string | null
+  receiverId: string
+  content: string
+  isEdited: boolean
+  isRead: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface DmPage {
+  messages: DmMessage[]
+  hasMore: boolean
+  nextCursor: string | null
+}
+
+export interface Reaction {
+  id: string
+  messageId: string | null
+  directMessageId: string | null
+  userId: string
+  username: string
+  emoji: string
+}
+
 export interface UserProfile {
   id: string
   email: string
@@ -82,4 +112,24 @@ export interface UserProfile {
   statusMessage: string | null
   statusEmoji: string | null
   isOnline: boolean
+}
+
+export interface FileItem {
+  attachmentId: string
+  fileName: string
+  fileUrl: string
+  mimeType: string
+  fileSize: number
+  uploadedAt: string
+}
+
+export interface AppNotification {
+  id: string
+  type: string
+  title: string
+  content: string
+  referenceId: string | null
+  referenceType: string | null
+  isRead: boolean
+  createdAt: string
 }

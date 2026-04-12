@@ -44,7 +44,14 @@ export function useWebSocket({ workspaceId, channelId }: UseWebSocketOptions) {
         // 새 메시지
         client.subscribe(`/topic/channel/${channelId}`, (msg: IMessage) => {
           const body = JSON.parse(msg.body) as ChatMessage
-          addMessage(channelId, body)
+
+          // parentId가 없는 메시지만 채널 스토어에 추가
+          if (!body.parentId) {
+            addMessage(channelId, body)
+          }
+
+          // 스레드 패널에 전달하는 커스텀 이벤트 (parentId 있든 없든 발생)
+          window.dispatchEvent(new CustomEvent('ws:channel-message', { detail: body }))
         })
 
         // 메시지 수정

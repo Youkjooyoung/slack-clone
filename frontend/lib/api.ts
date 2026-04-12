@@ -151,6 +151,13 @@ export const authApi = {
 
 export const userApi = {
   getMe: () => api.get<ApiResponse<import('@/types').UserProfile>>('/api/users/me'),
+
+  updateProfile: (payload: {
+    displayName?: string
+    avatarUrl?: string
+    statusMessage?: string
+    statusEmoji?: string
+  }) => api.patch<ApiResponse<import('@/types').UserProfile>>('/api/users/me', payload),
 }
 
 // ─── Workspace ───────────────────────────────────────────────────────────────
@@ -242,6 +249,9 @@ export const channelApi = {
 export const fileApi = {
   requestUpload: (payload: { fileName: string; mimeType: string; fileSize: number }) =>
     api.post<ApiResponse<import('@/types').Attachment>>('/api/files/upload', payload),
+
+  getMyFiles: () =>
+    api.get<ApiResponse<import('@/types').FileItem[]>>('/api/files/my'),
 }
 
 // ─── Message ─────────────────────────────────────────────────────────────────
@@ -266,4 +276,68 @@ export const messageApi = {
     api.post<ApiResponse<null>>(
       `/api/workspaces/${workspaceId}/channels/${channelId}/read`
     ),
+
+  getReplies: (messageId: string) =>
+    api.get<ApiResponse<import('@/types').ChatMessage[]>>(`/api/messages/${messageId}/replies`),
+
+  search: (workspaceId: string, channelId: string, q: string) =>
+    api.get<ApiResponse<import('@/types').ChatMessage[]>>(
+      `/api/workspaces/${workspaceId}/channels/${channelId}/messages/search`,
+      { params: { q } }
+    ),
+}
+
+export const dmApi = {
+  getMessages: (workspaceId: string, targetUserId: string, cursor?: string) =>
+    api.get<ApiResponse<import('@/types').DmPage>>(
+      `/api/workspaces/${workspaceId}/dm/${targetUserId}/messages`,
+      { params: cursor ? { cursor } : {} }
+    ),
+
+  editMessage: (dmId: string, content: string) =>
+    api.put<ApiResponse<import('@/types').DmMessage>>(`/api/dm/${dmId}`, { content }),
+
+  deleteMessage: (dmId: string) =>
+    api.delete<ApiResponse<null>>(`/api/dm/${dmId}`),
+}
+
+export const notificationApi = {
+  getAll: () =>
+    api.get<ApiResponse<import('@/types').AppNotification[]>>('/api/notifications'),
+
+  getUnreadCount: () =>
+    api.get<ApiResponse<{ count: number }>>('/api/notifications/unread-count'),
+
+  markAsRead: (id: string) =>
+    api.patch<ApiResponse<null>>(`/api/notifications/${id}/read`),
+
+  markAllAsRead: () =>
+    api.patch<ApiResponse<null>>('/api/notifications/read-all'),
+}
+
+export const presenceApi = {
+  getOnlineUsers: (workspaceId: string) =>
+    api.get<ApiResponse<string[]>>(`/api/workspaces/${workspaceId}/presence`),
+}
+
+export const unreadApi = {
+  getCounts: (workspaceId: string) =>
+    api.get<ApiResponse<Record<string, number>>>(`/api/workspaces/${workspaceId}/channels/unread`),
+}
+
+export const reactionApi = {
+  getForMessage: (messageId: string) =>
+    api.get<ApiResponse<import('@/types').Reaction[]>>(`/api/messages/${messageId}/reactions`),
+
+  addToMessage: (messageId: string, emoji: string) =>
+    api.post<ApiResponse<import('@/types').Reaction>>(`/api/messages/${messageId}/reactions`, { emoji }),
+
+  removeFromMessage: (messageId: string, emoji: string) =>
+    api.delete<ApiResponse<null>>(`/api/messages/${messageId}/reactions/${encodeURIComponent(emoji)}`),
+
+  addToDm: (dmId: string, emoji: string) =>
+    api.post<ApiResponse<import('@/types').Reaction>>(`/api/dm/${dmId}/reactions`, { emoji }),
+
+  removeFromDm: (dmId: string, emoji: string) =>
+    api.delete<ApiResponse<null>>(`/api/dm/${dmId}/reactions/${encodeURIComponent(emoji)}`),
 }

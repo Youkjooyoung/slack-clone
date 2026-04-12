@@ -1,8 +1,12 @@
+/* ── 전체 레이아웃 ── */
 .chatArea {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-width: 0;
   height: 100%;
   overflow: hidden;
+  background: #fff;
 }
 
 /* ── 채널 헤더 ── */
@@ -12,14 +16,17 @@
   display: flex;
   align-items: center;
   padding: 0 1.25rem;
-  gap: 0.5rem;
+  gap: 0.625rem;
   flex-shrink: 0;
   background: #fff;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.06);
 }
 
 .headerHash {
-  font-size: 1.25rem;
-  color: #616061;
+  font-size: 1.1rem;
+  color: #1d1c1d;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .headerName {
@@ -28,50 +35,80 @@
   color: #1d1c1d;
 }
 
+.headerSep {
+  width: 1px;
+  height: 16px;
+  background: #e0e0e0;
+  margin: 0 0.25rem;
+}
+
+.headerDesc {
+  font-size: 0.875rem;
+  color: #616061;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 360px;
+}
+
 .readBadge {
   margin-left: auto;
   font-size: 0.75rem;
   color: #616061;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
 }
 
 /* ── 메시지 목록 ── */
 .messageList {
   flex: 1;
   overflow-y: auto;
-  padding: 1rem 0;
+  padding: 0.5rem 0 0.5rem;
   display: flex;
   flex-direction: column-reverse;
+  scrollbar-width: thin;
+  scrollbar-color: #e0e0e0 transparent;
+}
+
+.messageList::-webkit-scrollbar {
+  width: 6px;
+}
+
+.messageList::-webkit-scrollbar-thumb {
+  background: #d0d0d0;
+  border-radius: 3px;
+}
+
+.messageList::-webkit-scrollbar-thumb:hover {
+  background: #b0b0b0;
 }
 
 .loadMoreBtn {
   display: block;
-  margin: 0.5rem auto;
-  padding: 0.375rem 1rem;
+  margin: 0.75rem auto;
+  padding: 0.375rem 1.25rem;
   border-radius: 9999px;
-  border: 1px solid #e8e8e8;
+  border: 1px solid #e0e0e0;
   background: #fff;
   font-size: 0.8125rem;
   color: #1264a3;
   cursor: pointer;
+  transition: background 0.1s;
 }
 
-.loadMoreBtn:hover {
-  background: #f8f8f8;
-}
-
-.loadMoreBtn:disabled {
-  color: #999;
-  cursor: default;
-}
+.loadMoreBtn:hover { background: #f0f7ff; }
+.loadMoreBtn:disabled { color: #bbb; cursor: default; }
 
 /* ── 날짜 구분선 ── */
 .dateDivider {
   display: flex;
   align-items: center;
-  padding: 0.5rem 1.25rem;
+  padding: 1rem 1.25rem 0.5rem;
   gap: 0.75rem;
   color: #616061;
   font-size: 0.8125rem;
+  font-weight: 500;
 }
 
 .dateLine {
@@ -84,8 +121,9 @@
 .messageRow {
   display: flex;
   gap: 0.625rem;
-  padding: 0.125rem 1.25rem;
+  padding: 0.25rem 1.25rem;
   position: relative;
+  transition: background 0.05s;
 }
 
 .messageRow:hover {
@@ -96,6 +134,18 @@
   display: flex;
 }
 
+/* 연속 메시지 (그룹) */
+.messageRowGrouped {
+  padding-top: 0.0625rem;
+  padding-bottom: 0.0625rem;
+}
+
+/* 첫 메시지 (그룹 첫 번째) */
+.messageRowFirst {
+  margin-top: 0.75rem;
+}
+
+/* ── 아바타 영역 ── */
 .avatarWrap {
   width: 36px;
   flex-shrink: 0;
@@ -105,23 +155,44 @@
 .avatarFallback {
   width: 36px;
   height: 36px;
-  border-radius: 4px;
-  background: #4f46e5;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
   color: #fff;
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
+  text-transform: uppercase;
+  user-select: none;
 }
 
 .avatarImg {
   width: 36px;
   height: 36px;
-  border-radius: 4px;
+  border-radius: 6px;
   object-fit: cover;
 }
 
+/* 그룹 메시지 시간 (아바타 자리) */
+.groupedTime {
+  width: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 4px;
+  opacity: 0;
+  font-size: 0.6875rem;
+  color: #97979b;
+  white-space: nowrap;
+}
+
+.messageRow:hover .groupedTime {
+  opacity: 1;
+}
+
+/* ── 메시지 본문 ── */
 .messageBody {
   flex: 1;
   min-width: 0;
@@ -131,23 +202,28 @@
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
-  margin-bottom: 0.125rem;
+  margin-bottom: 0.1875rem;
 }
 
 .senderName {
   font-size: 0.9375rem;
   font-weight: 700;
   color: #1d1c1d;
+  cursor: pointer;
+}
+
+.senderName:hover {
+  text-decoration: underline;
 }
 
 .messageTime {
   font-size: 0.75rem;
-  color: #616061;
+  color: #97979b;
 }
 
 .editedBadge {
   font-size: 0.6875rem;
-  color: #999;
+  color: #bbb;
   font-style: italic;
 }
 
@@ -159,31 +235,71 @@
   white-space: pre-wrap;
 }
 
-/* ── 호버 액션 ── */
+/* ── 이모지 반응 ── */
+.reactionBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.375rem;
+}
+
+.reactionChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid #e0e0e0;
+  background: #f8f8f8;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  line-height: 1.5;
+  transition: border-color 0.1s, background 0.1s;
+}
+
+.reactionChip:hover {
+  background: #f0f0f0;
+  border-color: #c8c8c8;
+}
+
+.reactionMine {
+  border-color: #1164a3;
+  background: #e8f2fc;
+  color: #1164a3;
+}
+
+/* ── 호버 액션 툴바 ── */
 .messageActions {
   display: none;
   position: absolute;
-  top: 0;
+  top: -16px;
   right: 1.25rem;
   background: #fff;
-  border: 1px solid #e8e8e8;
-  border-radius: 6px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
-  gap: 0;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  overflow: hidden;
+  z-index: 10;
 }
 
 .actionBtn {
   background: none;
   border: none;
-  padding: 0.375rem 0.625rem;
+  border-right: 1px solid #f0f0f0;
+  padding: 0.375rem 0.5rem;
   cursor: pointer;
-  font-size: 0.8125rem;
+  font-size: 1rem;
   color: #616061;
+  line-height: 1;
+  transition: background 0.1s;
+}
+
+.actionBtn:last-child {
+  border-right: none;
 }
 
 .actionBtn:hover {
   background: #f8f8f8;
-  color: #1d1c1d;
 }
 
 /* ── 입력창 ── */
@@ -192,29 +308,67 @@
   flex-shrink: 0;
 }
 
+/* Drag resize handle */
+.resizeHandle {
+  height: 6px;
+  margin: 0 1.25rem 4px;
+  border-radius: 3px;
+  background: transparent;
+  cursor: ns-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.resizeHandle::before {
+  content: '';
+  display: block;
+  width: 32px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.1);
+  transition: background 0.15s, width 0.15s;
+}
+
+.resizeHandle:hover { background: rgba(0, 0, 0, 0.04); }
+
+.resizeHandle:hover::before {
+  background: rgba(0, 0, 0, 0.22);
+  width: 48px;
+}
+
 .inputBox {
-  border: 1px solid #e8e8e8;
-  border-radius: 8px;
+  border: 1px solid #c7c7c7;
+  border-radius: 10px;
   overflow: hidden;
+  background: #fff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.inputBox:focus-within {
+  border-color: #868686;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.12);
 }
 
 .inputToolbar {
   display: flex;
   align-items: center;
   padding: 0.375rem 0.625rem;
-  gap: 0.25rem;
+  gap: 0.125rem;
   border-bottom: 1px solid #f0f0f0;
 }
 
 .toolbarBtn {
   background: none;
   border: none;
-  padding: 0.25rem 0.375rem;
+  padding: 0.3125rem 0.4375rem;
   cursor: pointer;
   font-size: 1rem;
   color: #616061;
-  border-radius: 4px;
+  border-radius: 5px;
   line-height: 1;
+  transition: background 0.1s, color 0.1s;
 }
 
 .toolbarBtn:hover {
@@ -226,7 +380,7 @@
   width: 100%;
   min-height: 44px;
   max-height: 200px;
-  padding: 0.625rem 0.75rem;
+  padding: 0.6875rem 0.875rem;
   border: none;
   outline: none;
   resize: none;
@@ -235,23 +389,29 @@
   font-family: inherit;
   line-height: 1.46668;
   box-sizing: border-box;
+  background: transparent;
 }
 
 .textarea::placeholder {
-  color: #9e9e9e;
+  color: #c7c7c7;
 }
 
 .inputFooter {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  padding: 0.375rem 0.625rem;
+  justify-content: space-between;
+  padding: 0.375rem 0.75rem 0.5rem;
+}
+
+.inputHint {
+  font-size: 0.75rem;
+  color: #bbb;
 }
 
 .sendBtn {
   width: 32px;
   height: 32px;
-  border-radius: 6px;
+  border-radius: 7px;
   background: #007a5a;
   border: none;
   color: #fff;
@@ -260,18 +420,218 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.1s;
+  transition: background 0.15s, transform 0.1s;
 }
 
-.sendBtn:hover {
-  background: #005c44;
-}
+.sendBtn:hover { background: #148567; }
+.sendBtn:active { transform: scale(0.93); }
 
 .sendBtn:disabled {
   background: #d9d9d9;
   cursor: default;
+  transform: none;
 }
 
-.fileInput {
-  display: none;
+.fileInput { display: none; }
+
+/* ── 메시지 인라인 편집 ── */
+.editBox {
+  margin-top: 0.125rem;
+}
+
+.editTextarea {
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid #1164a3;
+  border-radius: 6px;
+  outline: none;
+  resize: none;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  line-height: 1.46668;
+  color: #1d1c1d;
+  box-sizing: border-box;
+  box-shadow: 0 0 0 2px rgba(17,100,163,0.15);
+}
+
+.editActions {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.375rem;
+}
+
+.editHint {
+  font-size: 0.75rem;
+  color: #97979b;
+  flex: 1;
+}
+
+.editSaveBtn {
+  padding: 0.25rem 0.75rem;
+  border-radius: 5px;
+  background: #007a5a;
+  color: #fff;
+  border: none;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.editSaveBtn:hover { background: #148567; }
+
+.editCancelBtn {
+  padding: 0.25rem 0.75rem;
+  border-radius: 5px;
+  background: none;
+  color: #616061;
+  border: 1px solid #e0e0e0;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.editCancelBtn:hover { background: #f0f0f0; }
+
+/* ── 헤더 검색 ── */
+.searchInput {
+  flex: 1;
+  max-width: 400px;
+  height: 32px;
+  padding: 0 0.75rem;
+  border: 1px solid #c7c7c7;
+  border-radius: 6px;
+  outline: none;
+  font-size: 0.9375rem;
+  color: #1d1c1d;
+  font-family: inherit;
+  background: #f8f8f8;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.searchInput:focus {
+  border-color: #1164a3;
+  box-shadow: 0 0 0 2px rgba(17,100,163,0.15);
+  background: #fff;
+}
+
+.headerActionBtn {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background: none;
+  border: none;
+  color: #616061;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.1s, color 0.1s;
+}
+
+.headerActionBtn:hover {
+  background: #f0f0f0;
+  color: #1d1c1d;
+}
+
+/* ── 검색 결과 패널 ── */
+.searchPanel {
+  border-bottom: 1px solid #e8e8e8;
+  background: #fafafa;
+  max-height: 280px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.searchPanelHeader {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #616061;
+  border-bottom: 1px solid #f0f0f0;
+  background: #f0f0f0;
+}
+
+.searchEmpty {
+  padding: 1rem 1.25rem;
+  font-size: 0.875rem;
+  color: #97979b;
+  text-align: center;
+}
+
+.searchResultItem {
+  padding: 0.625rem 1.25rem;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.08s;
+}
+
+.searchResultItem:hover { background: #f0f7ff; }
+
+.searchSender {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #1d1c1d;
+  margin-right: 0.5rem;
+}
+
+.searchTime {
+  font-size: 0.75rem;
+  color: #97979b;
+}
+
+.searchContent {
+  font-size: 0.875rem;
+  color: #1d1c1d;
+  margin-top: 0.25rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ── 인라인 이미지 ── */
+.inlineImage {
+  display: block;
+  max-width: min(400px, 100%);
+  max-height: 300px;
+  border-radius: 8px;
+  margin-top: 0.375rem;
+  object-fit: contain;
+  cursor: zoom-in;
+  border: 1px solid #f0f0f0;
+}
+
+/* ── 빈 채널 ── */
+.emptyChannel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 2rem 1.5rem 1rem;
+  border-bottom: 1px solid #e8e8e8;
+  margin-bottom: 0.5rem;
+}
+
+.emptyChannelIcon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.emptyChannelTitle {
+  font-size: 1.375rem;
+  font-weight: 900;
+  color: #1d1c1d;
+  margin-bottom: 0.375rem;
+}
+
+.emptyChannelDesc {
+  font-size: 0.9375rem;
+  color: #616061;
+  line-height: 1.5;
 }

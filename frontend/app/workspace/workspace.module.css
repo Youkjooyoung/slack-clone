@@ -1,86 +1,332 @@
+/* ── 전체 페이지 ── */
 .page {
   min-height: 100vh;
-  background-color: #f8fafc;
+  background: linear-gradient(135deg, #1a0826 0%, #2d1050 40%, #1e0a3c 70%, #0f0820 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: 2rem 1rem;
+  position: relative;
+  overflow: hidden;
 }
 
-.header {
-  max-width: 900px;
-  margin: 0 auto 2rem;
+/* 배경 장식 */
+.page::before {
+  content: '';
+  position: absolute;
+  top: -200px;
+  left: -200px;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(124,58,237,0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.page::after {
+  content: '';
+  position: absolute;
+  bottom: -200px;
+  right: -200px;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(74,21,75,0.2) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ── 브랜드 헤더 ── */
+.brand {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 0.625rem;
+  margin-bottom: 2rem;
+  z-index: 1;
 }
 
-.title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #0f172a;
-}
-
-.grid {
-  max-width: 900px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1rem;
-}
-
-.workspaceCard {
-  cursor: pointer;
-  transition: box-shadow 0.15s, transform 0.15s;
-}
-
-.workspaceCard:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.10);
-  transform: translateY(-2px);
-}
-
-.cardInner {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.icon {
-  width: 48px;
-  height: 48px;
+.brandIcon {
+  width: 40px;
+  height: 40px;
   border-radius: 10px;
-  background-color: #4f46e5;
-  color: #fff;
+  background: linear-gradient(135deg, #7c3aed, #4a154b);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.25rem;
-  font-weight: 700;
-  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(124,58,237,0.4);
 }
 
-.cardName {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #0f172a;
-  margin-bottom: 0.125rem;
+.brandName {
+  font-size: 1.375rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.02em;
 }
 
-.cardRole {
-  font-size: 0.75rem;
-  color: #64748b;
+/* ── 메인 카드 ── */
+.card {
+  background: #fff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.2);
+  overflow: hidden;
+  z-index: 1;
 }
 
-.empty {
-  max-width: 900px;
-  margin: 4rem auto;
+/* ── 카드 헤더 ── */
+.cardHeader {
+  padding: 1.75rem 2rem 1.25rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.cardTitle {
+  font-size: 1.375rem;
+  font-weight: 800;
+  color: #1d1c1d;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.25rem;
+}
+
+.cardSub {
+  font-size: 0.875rem;
+  color: #868686;
+}
+
+/* ── 로딩 ── */
+.loadingWrap {
+  padding: 3rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.loadingSpinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f0f0f0;
+  border-top-color: #7c3aed;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loadingText {
+  font-size: 0.875rem;
+  color: #868686;
+}
+
+/* ── 에러 상태 ── */
+.errorWrap {
+  padding: 2rem;
   text-align: center;
-  color: #64748b;
 }
 
-.emptyTitle {
-  font-size: 1.125rem;
-  font-weight: 600;
+.errorIcon {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.errorTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1d1c1d;
   margin-bottom: 0.5rem;
 }
 
+.errorDesc {
+  font-size: 0.875rem;
+  color: #868686;
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.errorCode {
+  background: #1d1c1d;
+  color: #4ade80;
+  padding: 0.875rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  text-align: left;
+  display: block;
+  margin-bottom: 1.25rem;
+  line-height: 1.8;
+  font-family: 'Courier New', monospace;
+}
+
+.retryBtn {
+  padding: 0.625rem 1.5rem;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #4a154b, #7c3aed);
+  color: #fff;
+  border: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.retryBtn:hover { opacity: 0.88; }
+
+/* ── 빈 상태 ── */
+.emptyWrap {
+  padding: 2.5rem 2rem;
+  text-align: center;
+}
+
+.emptyIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.emptyTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1d1c1d;
+  margin-bottom: 0.375rem;
+}
+
+.emptyDesc {
+  font-size: 0.875rem;
+  color: #868686;
+}
+
+/* ── 워크스페이스 목록 ── */
+.wsList {
+  padding: 0.5rem 0;
+}
+
+.wsItem {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.875rem 2rem;
+  cursor: pointer;
+  transition: background 0.08s;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+
+.wsItem:hover {
+  background: #f7f4ff;
+}
+
+.wsItem:hover .wsArrow {
+  opacity: 1;
+  transform: translateX(2px);
+}
+
+.wsAvatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #4a154b 0%, #7c3aed 100%);
+  color: #fff;
+  font-size: 1.375rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(74,21,75,0.3);
+  text-transform: uppercase;
+}
+
+.wsInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.wsName {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #1d1c1d;
+  margin-bottom: 0.1875rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wsRole {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background: #f0ebff;
+  color: #7c3aed;
+}
+
+.wsArrow {
+  color: #c0b8d0;
+  font-size: 1rem;
+  opacity: 0;
+  transition: opacity 0.1s, transform 0.1s;
+  flex-shrink: 0;
+}
+
+.wsDivider {
+  height: 1px;
+  background: #f0f0f0;
+  margin: 0.25rem 0;
+}
+
+/* ── 카드 푸터 ── */
+.cardFooter {
+  padding: 1.25rem 2rem 1.75rem;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.createBtn {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #4a154b 0%, #7c3aed 100%);
+  color: #fff;
+  border: none;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 16px rgba(74,21,75,0.35);
+}
+
+.createBtn:hover { opacity: 0.88; }
+.createBtn:active { transform: scale(0.98); }
+
+.logoutBtn {
+  width: 100%;
+  padding: 0.625rem;
+  border-radius: 10px;
+  background: none;
+  color: #868686;
+  border: 1px solid #e8e8e8;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+.logoutBtn:hover {
+  background: #fafafa;
+  color: #1d1c1d;
+}
+
+/* ── 다이얼로그 내부 폼 ── */
 .modal {
   display: flex;
   flex-direction: column;
@@ -93,15 +339,12 @@
   gap: 0.375rem;
 }
 
-.errorMsg {
-  font-size: 0.75rem;
-  color: #ef4444;
-}
+.errorMsg { font-size: 0.75rem; color: #ef4444; }
 
 .serverError {
   padding: 0.75rem;
   border-radius: 0.375rem;
-  background-color: #fef2f2;
+  background: #fef2f2;
   border: 1px solid #fecaca;
   font-size: 0.875rem;
   color: #dc2626;

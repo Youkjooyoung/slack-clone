@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 
-import { authApi, type ApiResponse, type TokenResponse } from '@/lib/api'
+import { authApi, userApi, type ApiResponse, type TokenResponse } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import styles from './auth.module.css'
 
@@ -59,13 +59,14 @@ export function RegisterForm() {
         username: values.username,
         password: values.password,
       }),
-    onSuccess: (res, variables) => {
+    onSuccess: async (res, variables) => {
       const { accessToken, refreshToken } = res.data.data
-      setAuth(
-        { id: '', email: variables.email, username: variables.username },
-        accessToken,
-        refreshToken
-      )
+      setAuth({ id: '', email: variables.email, username: variables.username }, accessToken, refreshToken)
+      try {
+        const meRes = await userApi.getMe()
+        const me = meRes.data.data
+        setAuth({ id: me.id, email: me.email, username: me.username, avatarUrl: me.avatarUrl }, accessToken, refreshToken)
+      } catch { /* 실패해도 계속 진행 */ }
       router.push('/workspace')
     },
     onError: (error: AxiosError<ApiResponse<null>>) => {
@@ -85,6 +86,7 @@ export function RegisterForm() {
       <Card className={styles.card}>
         <CardHeader className={styles.header}>
           <div className={styles.logo}>
+            <div className={styles.logoIcon}>💬</div>
             <span className={styles.logoText}>SlackClone</span>
           </div>
           <CardTitle className={styles.title}>회원가입</CardTitle>
@@ -92,7 +94,7 @@ export function RegisterForm() {
             새 계정을 만들어 시작하세요
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className={styles.content}>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className={styles.form}>
               {serverError && (

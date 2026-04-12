@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import axios, { AxiosError } from 'axios'
 import { fileApi } from '@/lib/api'
+import { useAuthStore } from '@/store/authStore'
 import type { Attachment } from '@/types'
 
 export interface UploadedFile {
@@ -68,6 +70,7 @@ export function useFileUpload(): UseFileUploadReturn {
   const [isUploading, setIsUploading] = useState(false)
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const { accessToken } = useAuthStore()
 
   const upload = useCallback(async (file: File): Promise<UploadedFile | null> => {
     setError(null)
@@ -82,18 +85,42 @@ export function useFileUpload(): UseFileUploadReturn {
     setProgress(0)
 
     try {
-      // 1. 백엔드에서 presigned URL 요청
-      const { data } = await fileApi.requestUpload({
-        fileName: file.name,
-        mimeType: file.type,
-        fileSize: file.size,
-      })
-      const attachment = data.data
+      let attachment: Attachment
 
-      // 2. S3에 직접 업로드 (진행률 추적)
-      await uploadToS3(attachment.presignedUrl, file, setProgress)
+      try {
+        // 1a. S3 presigned URL 방식 시도
+        const { data } = await fileApi.requestUpload({
+          fileName: file.name,
+          mimeType: file.type,
+          fileSize: file.size,
+        })
+        attachment = data.data
+        // S3에 직접 업로드
+        await uploadToS3(attachment.presignedUrl, file, setProgress)
+      } catch (err) {
+        // S3 미설정(503) 시 로컬 업로드로 폴백
+        const status = (err as AxiosError)?.response?.status
+        if (status !== 503) throw err
 
-      // 3. 이미지 미리보기 URL 생성
+        const formData = new FormData()
+        formData.append('file', file)
+        const { data: localData } = await axios.post<{ data: Attachment }>(
+          'http://localhost:8080/api/files/upload/local',
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+              ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+            },
+            onUploadProgress: (e) => {
+              if (e.total) setProgress(Math.round((e.loaded / e.total) * 100))
+            },
+          }
+        )
+        attachment = localData.data
+      }
+
+      // 이미지 미리보기 URL 생성
       const previewUrl = ALLOWED_TYPES[file.type] === 'image'
         ? URL.createObjectURL(file)
         : null
@@ -109,7 +136,7 @@ export function useFileUpload(): UseFileUploadReturn {
     } finally {
       setIsUploading(false)
     }
-  }, [])
+  }, [accessToken])
 
   const removeFile = useCallback((attachmentId: string) => {
     setUploadedFiles((prev) => {

@@ -1,0 +1,338 @@
+/* ═══════════════════════════════════════
+   Shared panel styles
+═══════════════════════════════════════ */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.panelScroll {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: none;
+  padding-bottom: 0.5rem;
+}
+.panelScroll::-webkit-scrollbar { display: none; }
+
+/* ── Section title ── */
+.sectionLabel {
+  padding: 0.625rem 1rem 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ── Generic row item ── */
+.item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3125rem 1rem;
+  border-radius: 5px;
+  margin: 1px 0.5rem;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.9375rem;
+  transition: background 0.08s, color 0.08s;
+  user-select: none;
+}
+
+.item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.itemActive {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.itemIcon {
+  font-size: 1rem;
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+  line-height: 1;
+}
+
+.itemText {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemBadge {
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  background: #cd2553;
+  color: #fff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+
+.itemMeta {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  flex-shrink: 0;
+}
+
+.onlineDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1.5px rgba(63, 14, 64, 0.8);
+}
+
+/* ── Divider ── */
+.divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: 0.375rem 1rem;
+}
+
+/* ── Empty state ── */
+.empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.emptyIcon {
+  font-size: 2rem;
+  margin-bottom: 0.625rem;
+  display: block;
+}
+
+/* ── Activity item ── */
+.activityItem {
+  padding: 0.625rem 1rem;
+  margin: 1px 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.08s;
+}
+
+.activityItem:hover { background: rgba(255, 255, 255, 0.07); }
+
+.activityItemRead { opacity: 0.55; }
+
+.activityItemHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-bottom: 0.25rem;
+}
+
+.activityItemType {
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.activityItemTitle {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activityItemTime {
+  font-size: 0.6875rem;
+  color: rgba(255, 255, 255, 0.35);
+  flex-shrink: 0;
+}
+
+.activityItemContent {
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.6);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-left: 1.375rem;
+}
+
+.activityDateLabel {
+  padding: 0.75rem 1rem 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.04em;
+}
+
+.activityReadAll {
+  margin: 0.375rem 0.5rem;
+  width: calc(100% - 1rem);
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 5px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.8125rem;
+  padding: 0.375rem 0;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+.activityReadAll:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+/* ── Files panel ── */
+.fileItem {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  margin: 1px 0.5rem;
+  cursor: pointer;
+  transition: background 0.08s;
+}
+
+.fileItem:hover { background: rgba(255, 255, 255, 0.08); }
+
+.fileIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.125rem;
+  flex-shrink: 0;
+}
+
+.fileInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.fileName {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileMeta {
+  font-size: 0.6875rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 1px;
+}
+
+/* ── More / Customize panel ── */
+.morePanelInner {
+  padding: 0.5rem 0 1rem;
+}
+
+.moreSection {
+  padding: 0.75rem 1rem 0.25rem;
+}
+
+.moreSectionTitle {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 0.625rem;
+}
+
+.themeGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.themeCard {
+  border-radius: 8px;
+  border: 2px solid transparent;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.1s;
+}
+
+.themeCard:hover { transform: scale(1.03); }
+
+.themeCardActive { border-color: rgba(255, 255, 255, 0.6) !important; }
+
+.themePreview {
+  height: 36px;
+  display: flex;
+  gap: 3px;
+  padding: 4px;
+}
+
+.themePreviewRail {
+  width: 10px;
+  border-radius: 3px;
+}
+
+.themePreviewPanel {
+  flex: 1;
+  border-radius: 3px;
+}
+
+.themeCardLabel {
+  padding: 0.25rem 0.375rem 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+}
+
+.sizeGrid {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.sizeBtn {
+  flex: 1;
+  padding: 0.5rem 0;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
+  text-align: center;
+}
+
+.sizeBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.sizeBtnActive {
+  background: rgba(255, 255, 255, 0.18) !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
+  color: #fff !important;
+}
+
+.moreDivider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 0.75rem 1rem;
+}

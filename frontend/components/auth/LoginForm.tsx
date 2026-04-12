@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 
-import { authApi, type ApiResponse, type TokenResponse } from '@/lib/api'
+import { authApi, userApi, type ApiResponse, type TokenResponse } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import styles from './auth.module.css'
 
@@ -42,13 +42,16 @@ export function LoginForm() {
 
   const { mutate: login, isPending } = useMutation({
     mutationFn: (values: LoginFormValues) => authApi.login(values),
-    onSuccess: (res) => {
+    onSuccess: async (res) => {
       const { accessToken, refreshToken } = res.data.data
-      setAuth(
-        { id: '', email: form.getValues('email'), username: '' },
-        accessToken,
-        refreshToken
-      )
+      // 임시로 토큰만 먼저 저장
+      setAuth({ id: '', email: form.getValues('email'), username: '' }, accessToken, refreshToken)
+      try {
+        // 실제 user 정보 조회 후 갱신
+        const meRes = await userApi.getMe()
+        const me = meRes.data.data
+        setAuth({ id: me.id, email: me.email, username: me.username, avatarUrl: me.avatarUrl }, accessToken, refreshToken)
+      } catch { /* 실패해도 계속 진행 */ }
       router.push('/workspace')
     },
     onError: (error: AxiosError<ApiResponse<null>>) => {
@@ -68,6 +71,7 @@ export function LoginForm() {
       <Card className={styles.card}>
         <CardHeader className={styles.header}>
           <div className={styles.logo}>
+            <div className={styles.logoIcon}>💬</div>
             <span className={styles.logoText}>SlackClone</span>
           </div>
           <CardTitle className={styles.title}>로그인</CardTitle>
@@ -75,7 +79,7 @@ export function LoginForm() {
             계정에 로그인하세요
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className={styles.content}>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className={styles.form}>
               {serverError && (

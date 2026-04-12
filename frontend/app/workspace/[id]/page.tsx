@@ -1,19 +1,21 @@
 'use client'
 
+import { use } from 'react'
 import { useWorkspaceStore } from '@/store/workspaceStore'
 import { ChatArea } from '@/components/chat/ChatArea'
 import styles from './layout.module.css'
 
 interface Props {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 export default function WorkspacePage({ params }: Props) {
+  const { id: workspaceId } = use(params)
   const { currentChannel } = useWorkspaceStore()
 
   if (currentChannel) {
     return (
-      <ChatArea workspaceId={params.id} channel={currentChannel} />
+      <ChatArea workspaceId={workspaceId} channel={currentChannel} />
     )
   }
 
