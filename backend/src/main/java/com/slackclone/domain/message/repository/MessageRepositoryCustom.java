@@ -9,4 +9,6 @@ import java.util.UUID;
 public interface MessageRepositoryCustom {
 
     List<Message> findByChannelIdBeforeCursor(UUID channelId, OffsetDateTime cursor, int size);
+
+    List<Message> searchByChannelIdAndKeyword(UUID channelId, String keyword, int size);
 }

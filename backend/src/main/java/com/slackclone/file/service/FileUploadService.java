@@ -5,9 +5,11 @@ import com.slackclone.common.exception.ErrorCode;
 import com.slackclone.domain.attachment.entity.Attachment;
 import com.slackclone.domain.attachment.repository.AttachmentRepository;
 import com.slackclone.domain.user.entity.User;
+import com.slackclone.file.dto.FileListResponse;
 import com.slackclone.file.dto.FileUploadRequest;
 import com.slackclone.file.dto.FileUploadResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,7 +19,7 @@ import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignReques
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.time.Duration;
-import java.util.Map;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -39,7 +41,8 @@ public class FileUploadService {
     private static final long IMAGE_MAX_BYTES     = 5L  * 1024 * 1024;  // 5MB
     private static final long DOCUMENT_MAX_BYTES  = 20L * 1024 * 1024;  // 20MB
 
-    private final S3Presigner s3Presigner;
+    @Autowired(required = false)
+    private S3Presigner s3Presigner;
     private final AttachmentRepository attachmentRepository;
 
     @Value("${aws.s3.bucket-name}")
@@ -69,6 +72,7 @@ public class FileUploadService {
                 .s3Key(s3Key)
                 .build();
 
+        @SuppressWarnings("null")
         Attachment saved = attachmentRepository.save(attachment);
 
         return new FileUploadResponse(
@@ -79,6 +83,14 @@ public class FileUploadService {
                 request.mimeType(),
                 request.fileSize()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<FileListResponse> getMyFiles(User uploader) {
+        return attachmentRepository.findByUploaderOrderByCreatedAtDesc(uploader)
+                .stream()
+                .map(FileListResponse::from)
+                .toList();
     }
 
     private void validateFile(String mimeType, long fileSize) {
@@ -105,6 +117,10 @@ public class FileUploadService {
     }
 
     private String createPresignedUrl(String s3Key, String mimeType, long fileSize) {
+        if (s3Presigner == null || bucketName == null || bucketName.isBlank()) {
+            throw new BusinessException(ErrorCode.S3_NOT_CONFIGURED);
+        }
+
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(s3Key)

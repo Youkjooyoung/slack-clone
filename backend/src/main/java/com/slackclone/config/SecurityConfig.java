@@ -2,6 +2,7 @@ package com.slackclone.config;
 
 import com.slackclone.common.jwt.JwtAuthenticationFilter;
 import com.slackclone.common.jwt.JwtUtil;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -39,6 +40,15 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/ws/**").permitAll()
                 .anyRequest().authenticated()
+            )
+            .exceptionHandling(e -> e
+                .authenticationEntryPoint((request, response, ex) -> {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.getWriter().write(
+                        "{\"success\":false,\"message\":\"인증이 필요합니다.\",\"data\":null}"
+                    );
+                })
             )
             .addFilterBefore(
                 new JwtAuthenticationFilter(jwtUtil, userDetailsService),

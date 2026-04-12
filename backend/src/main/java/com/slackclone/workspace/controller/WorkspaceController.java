@@ -1,6 +1,7 @@
 package com.slackclone.workspace.controller;
 
 import com.slackclone.common.response.ApiResponse;
+import com.slackclone.presence.service.PresenceService;
 import com.slackclone.workspace.dto.*;
 import com.slackclone.workspace.service.WorkspaceService;
 import jakarta.validation.Valid;
@@ -10,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -18,6 +20,7 @@ import java.util.UUID;
 public class WorkspaceController {
 
     private final WorkspaceService workspaceService;
+    private final PresenceService presenceService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<WorkspaceResponse>> create(
@@ -70,5 +73,11 @@ public class WorkspaceController {
             @PathVariable UUID userId) {
         workspaceService.removeMember(workspaceId, userId);
         return ResponseEntity.ok(ApiResponse.success("멤버가 제거되었습니다."));
+    }
+
+    @GetMapping("/{workspaceId}/presence")
+    public ResponseEntity<ApiResponse<Set<String>>> getPresence(
+            @PathVariable UUID workspaceId) {
+        return ResponseEntity.ok(ApiResponse.success(presenceService.getOnlineUserIds(workspaceId)));
     }
 }

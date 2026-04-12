@@ -37,10 +37,19 @@ public enum ErrorCode {
     MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "메시지를 찾을 수 없습니다."),
     MESSAGE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "메시지 접근 권한이 없습니다."),
 
+    // DM
+    DM_NOT_FOUND(HttpStatus.NOT_FOUND, "다이렉트 메시지를 찾을 수 없습니다."),
+    DM_ACCESS_DENIED(HttpStatus.FORBIDDEN, "다이렉트 메시지 접근 권한이 없습니다."),
+
+    // Reaction
+    REACTION_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 같은 반응을 추가했습니다."),
+    REACTION_NOT_FOUND(HttpStatus.NOT_FOUND, "반응을 찾을 수 없습니다."),
+
     // File
     FILE_TYPE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "허용되지 않는 파일 형식입니다."),
     FILE_SIZE_EXCEEDED(HttpStatus.BAD_REQUEST, "파일 크기가 허용 한도를 초과했습니다."),
     FILE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "파일 업로드에 실패했습니다."),
+    S3_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "파일 업로드 서비스가 설정되지 않았습니다. (S3 미설정)"),
 
     // Common
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다."),

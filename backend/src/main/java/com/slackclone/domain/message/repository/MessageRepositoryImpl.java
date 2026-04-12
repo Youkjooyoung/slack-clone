@@ -40,4 +40,23 @@ public class MessageRepositoryImpl implements MessageRepositoryCustom {
                 .limit(size)
                 .fetch();
     }
+
+    @Override
+    public List<Message> searchByChannelIdAndKeyword(UUID channelId, String keyword, int size) {
+        QMessage message = QMessage.message;
+        QUser sender = QUser.user;
+
+        return queryFactory
+                .selectFrom(message)
+                .join(message.sender, sender).fetchJoin()
+                .where(
+                        message.channel.id.eq(channelId),
+                        message.parent.isNull(),
+                        message.deletedAt.isNull(),
+                        message.content.containsIgnoreCase(keyword)
+                )
+                .orderBy(message.createdAt.desc())
+                .limit(size)
+                .fetch();
+    }
 }

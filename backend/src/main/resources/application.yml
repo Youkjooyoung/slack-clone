@@ -37,11 +37,16 @@ jwt:
 
 aws:
   s3:
-    access-key: ${AWS_ACCESS_KEY}
-    secret-key: ${AWS_SECRET_KEY}
-    bucket-name: ${S3_BUCKET_NAME}
+    access-key: ${AWS_ACCESS_KEY:}
+    secret-key: ${AWS_SECRET_KEY:}
+    bucket-name: ${S3_BUCKET_NAME:}
     region: ap-northeast-2
     presigned-url-expiry-minutes: 15
+
+local:
+  upload:
+    dir: /tmp/uploads
+    base-url: http://localhost:8080
 
 logging:
   level:

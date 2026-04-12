@@ -15,6 +15,8 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -48,12 +50,32 @@ public class MessageController {
         return ResponseEntity.ok(ApiResponse.success("메시지가 삭제되었습니다."));
     }
 
+    @GetMapping("/api/workspaces/{workspaceId}/channels/{channelId}/messages/search")
+    public ResponseEntity<ApiResponse<List<MessageResponse>>> searchMessages(
+            @PathVariable UUID workspaceId,
+            @PathVariable UUID channelId,
+            @RequestParam String q) {
+        return ResponseEntity.ok(ApiResponse.success(messageService.searchMessages(workspaceId, channelId, q)));
+    }
+
+    @GetMapping("/api/messages/{messageId}/replies")
+    public ResponseEntity<ApiResponse<List<MessageResponse>>> getReplies(
+            @PathVariable UUID messageId) {
+        return ResponseEntity.ok(ApiResponse.success(messageService.getReplies(messageId)));
+    }
+
     @PostMapping("/api/workspaces/{workspaceId}/channels/{channelId}/read")
     public ResponseEntity<ApiResponse<Void>> markAsRead(
             @PathVariable UUID workspaceId,
             @PathVariable UUID channelId) {
         messageService.markAsRead(channelId);
         return ResponseEntity.ok(ApiResponse.success("읽음 처리되었습니다."));
+    }
+
+    @GetMapping("/api/workspaces/{workspaceId}/channels/unread")
+    public ResponseEntity<ApiResponse<Map<String, Long>>> getUnreadCounts(
+            @PathVariable UUID workspaceId) {
+        return ResponseEntity.ok(ApiResponse.success(messageService.getUnreadCounts(workspaceId)));
     }
 
     // ─── STOMP: 채널 메시지 전송 ──────────────────────────────────────────────

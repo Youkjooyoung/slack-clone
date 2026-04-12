@@ -143,7 +143,7 @@ public class ChannelService {
         User currentUser = securityUtil.getCurrentUser();
         requireWorkspaceMember(workspaceId, currentUser.getId());
 
-        ChannelMember self = channelMemberRepository
+        channelMemberRepository
                 .findByChannelIdAndUserId(channelId, currentUser.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHANNEL_ACCESS_DENIED));
 

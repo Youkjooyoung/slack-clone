@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.3.2'
+    id 'org.springframework.boot' version '3.4.5'
     id 'io.spring.dependency-management' version '1.1.6'
 }
 
@@ -57,9 +57,7 @@ dependencies {
     runtimeOnly "io.jsonwebtoken:jjwt-jackson:${jjwtVersion}"
 
     // AWS SDK v2
-    implementation platform("software.amazon.awssdk:bom:${awsSdkVersion}")
     implementation 'software.amazon.awssdk:s3'
-    implementation 'software.amazon.awssdk:s3-presigner'
 
     // Lombok
     compileOnly 'org.projectlombok:lombok'
@@ -79,6 +77,14 @@ sourceSets {
 
 tasks.withType(JavaCompile).configureEach {
     options.generatedSourceOutputDirectory = file(querydslDir)
+}
+
+// AWS SDK v2 BOM — io.spring.dependency-management 플러그인과 함께 쓸 때는
+// platform() 대신 dependencyManagement 블록을 사용해야 버전이 올바르게 전파됩니다.
+dependencyManagement {
+    imports {
+        mavenBom "software.amazon.awssdk:bom:${awsSdkVersion}"
+    }
 }
 
 tasks.named('test') {
