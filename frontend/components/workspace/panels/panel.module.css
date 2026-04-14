@@ -94,6 +94,17 @@
   border-radius: 50%;
   flex-shrink: 0;
   box-shadow: 0 0 0 1.5px rgba(63, 14, 64, 0.8);
+  transition: background-color 0.3s ease;
+}
+
+@keyframes presencePulse {
+  0%   { box-shadow: 0 0 0 0 rgba(43, 172, 118, 0.6); }
+  70%  { box-shadow: 0 0 0 5px rgba(43, 172, 118, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(43, 172, 118, 0); }
+}
+
+.onlineDotPulse {
+  animation: presencePulse 2s infinite;
 }
 
 /* ── Divider ── */

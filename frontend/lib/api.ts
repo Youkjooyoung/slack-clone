@@ -1,4 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
+import { useAuthStore } from '@/store/authStore'
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'
 
@@ -37,18 +38,24 @@ function getStoredAuth(): { accessToken?: string; refreshToken?: string } | null
 }
 
 function updateStoredTokens(accessToken: string, refreshToken: string) {
-  if (typeof document === 'undefined') return
-  const match = document.cookie.match(/(?:^|; )auth-storage=([^;]*)/)
-  if (!match) return
-  try {
-    const obj = JSON.parse(decodeURIComponent(match[1])) as {
-      state?: Record<string, unknown>
+  // 쿠키 업데이트
+  if (typeof document !== 'undefined') {
+    const match = document.cookie.match(/(?:^|; )auth-storage=([^;]*)/)
+    if (match) {
+      try {
+        const obj = JSON.parse(decodeURIComponent(match[1])) as {
+          state?: Record<string, unknown>
+        }
+        obj.state = { ...obj.state, accessToken, refreshToken }
+        const encoded = encodeURIComponent(JSON.stringify(obj))
+        document.cookie = `auth-storage=${encoded}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`
+      } catch {
+      }
     }
-    obj.state = { ...obj.state, accessToken, refreshToken }
-    const encoded = encodeURIComponent(JSON.stringify(obj))
-    document.cookie = `auth-storage=${encoded}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`
-  } catch {
   }
+  // Zustand 스토어도 동기화 (useFileUpload 등 스토어를 직접 읽는 훅을 위해)
+  const { user, setAuth } = useAuthStore.getState()
+  if (user) setAuth(user, accessToken, refreshToken)
 }
 
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
@@ -340,4 +347,9 @@ export const reactionApi = {
 
   removeFromDm: (dmId: string, emoji: string) =>
     api.delete<ApiResponse<null>>(`/api/dm/${dmId}/reactions/${encodeURIComponent(emoji)}`),
+}
+
+export const ogApi = {
+  getMeta: (url: string) =>
+    api.get<ApiResponse<import('@/types').OgMeta>>('/api/og', { params: { url } }),
 }

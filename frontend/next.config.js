@@ -10,6 +10,7 @@ const nextConfig = {
   reactStrictMode: true,
   turbopack: {},
   output: 'standalone',
+  devIndicators: false,
 }
 
 module.exports = withPWA(nextConfig)

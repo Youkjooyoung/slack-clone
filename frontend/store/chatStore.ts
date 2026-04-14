@@ -9,6 +9,7 @@ interface ChatState {
   updateMessage: (channelId: string, updated: ChatMessage) => void
   removeMessage: (channelId: string, messageId: string) => void
   clearChannel: (channelId: string) => void
+  incrementReplyCount: (channelId: string, parentId: string) => void
 }
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -61,4 +62,16 @@ export const useChatStore = create<ChatState>((set) => ({
       delete next[channelId]
       return { messages: next }
     }),
+
+  incrementReplyCount: (channelId, parentId) =>
+    set((state) => ({
+      messages: {
+        ...state.messages,
+        [channelId]: (state.messages[channelId] ?? []).map((m) =>
+          m.id === parentId
+            ? { ...m, replyCount: (m.replyCount ?? 0) + 1 }
+            : m
+        ),
+      },
+    })),
 }))

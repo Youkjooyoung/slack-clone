@@ -54,6 +54,7 @@ export interface ChatMessage {
   content: string
   isEdited: boolean
   parentId: string | null
+  replyCount: number
   createdAt: string
   updatedAt: string
 }
@@ -132,4 +133,11 @@ export interface AppNotification {
   referenceType: string | null
   isRead: boolean
   createdAt: string
+}
+
+export interface OgMeta {
+  title: string
+  description: string | null
+  imageUrl: string | null
+  url: string
 }

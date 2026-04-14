@@ -16,9 +16,16 @@ public record MessageResponse(
         boolean isEdited,
         UUID parentId,
         OffsetDateTime createdAt,
-        OffsetDateTime updatedAt
+        OffsetDateTime updatedAt,
+        int replyCount
 ) {
+    /** 답글 수 없이 생성 (WebSocket 실시간 전송용) */
     public static MessageResponse from(Message message) {
+        return from(message, 0);
+    }
+
+    /** 답글 수 포함 생성 (목록 조회용) */
+    public static MessageResponse from(Message message, int replyCount) {
         return new MessageResponse(
                 message.getId(),
                 message.getChannel().getId(),
@@ -30,7 +37,8 @@ public record MessageResponse(
                 message.isEdited(),
                 message.getParent() != null ? message.getParent().getId() : null,
                 message.getCreatedAt(),
-                message.getUpdatedAt()
+                message.getUpdatedAt(),
+                replyCount
         );
     }
 }

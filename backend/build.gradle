@@ -59,6 +59,9 @@ dependencies {
     // AWS SDK v2
     implementation 'software.amazon.awssdk:s3'
 
+    // Jsoup (OG 메타태그 크롤링)
+    implementation 'org.jsoup:jsoup:1.17.2'
+
     // Lombok
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
