@@ -6,7 +6,6 @@ import {
   useCallback,
   useState,
   KeyboardEvent,
-  ChangeEvent,
   MouseEvent,
   useMemo,
 } from 'react'
@@ -14,19 +13,55 @@ import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
 import { useChatStore } from '@/store/chatStore'
 import { useWebSocket } from '@/hooks/useWebSocket'
-import { messageApi, reactionApi } from '@/lib/api'
+import { messageApi, reactionApi, workspaceApi } from '@/lib/api'
 import { useLayoutStore } from '@/store/layoutStore'
-import type { Channel, ChatMessage, MessagePage, Reaction } from '@/types'
+import { useUnreadStore } from '@/store/unreadStore'
+import type { Channel, ChatMessage, MessagePage, Reaction, WorkspaceMember } from '@/types'
 import { FileUploadDropzone } from './FileUploadDropzone'
 import type { UploadedFile } from '@/hooks/useFileUpload'
-import { useMention, MentionDropdown } from '@/hooks/useMention'
+import { MentionDropdown } from '@/hooks/useMention'
 import { ThreadPanel } from './ThreadPanel'
+import { LinkPreview, extractPreviewUrl } from './LinkPreview'
 import { toast } from 'sonner'
 import styles from './chat.module.css'
 
 const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮']
 const EMOJI_PALETTE = ['😀','😂','🥲','😍','🤩','😎','🤔','😢','😡','🥳','👍','👎','👏','🙌','❤️','🔥','⭐','💯','✅','🎉','🚀','💬','📌','📎']
 const GROUP_THRESHOLD_MS = 5 * 60 * 1000 // 5분 이내 연속 메시지 → 그룹
+
+/** contentEditable의 innerHTML → 마크다운 텍스트 변환 */
+function htmlToMarkdown(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<div><br\s*\/?><\/div>/gi, '\n')
+    .replace(/<div>/gi, '\n')
+    .replace(/<\/div>/gi, '')
+    .replace(/<strong>(.*?)<\/strong>/gi, '**$1**')
+    .replace(/<b>(.*?)<\/b>/gi, '**$1**')
+    .replace(/<em>(.*?)<\/em>/gi, '_$1_')
+    .replace(/<i>(.*?)<\/i>/gi, '_$1_')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/^\n+/, '')
+}
+
+/** contentEditable에 텍스트/이모지 삽입 */
+function insertAtCursor(el: HTMLElement, text: string) {
+  el.focus()
+  const sel = window.getSelection()
+  if (!sel || sel.rangeCount === 0) return
+  const range = sel.getRangeAt(0)
+  range.deleteContents()
+  const node = document.createTextNode(text)
+  range.insertNode(node)
+  range.setStartAfter(node)
+  range.setEndAfter(node)
+  sel.removeAllRanges()
+  sel.addRange(range)
+}
 
 interface ChatAreaProps {
   workspaceId: string
@@ -48,24 +83,54 @@ function isSameDay(a: string, b: string) {
 }
 
 const IMAGE_URL_RE = /https?:\/\/\S+\.(?:png|jpe?g|gif|webp|svg|bmp)(\?[^\s]*)?/gi
+const FILE_SERVE_RE = /https?:\/\/\S+\/api\/files\/serve\/\S+/gi
 
 function extractImageUrls(content: string): string[] {
-  return [...content.matchAll(IMAGE_URL_RE)].map((m) => m[0])
+  const fromExt = [...content.matchAll(IMAGE_URL_RE)].map((m) => m[0])
+  const fromServe = [...content.matchAll(FILE_SERVE_RE)].map((m) => m[0])
+  // 중복 제거
+  return [...new Set([...fromExt, ...fromServe])]
+}
+
+/** 이미지 URL을 텍스트에서 제거 (이미지는 별도 <img>로 표시) */
+function stripImageUrls(content: string): string {
+  const imageUrls = extractImageUrls(content)
+  let result = content
+  for (const url of imageUrls) {
+    result = result.replace(url, '')
+  }
+  return result.trim()
 }
 
 /** 간단한 마크다운 → HTML 변환 (bold, italic, code, strikethrough) */
 function renderMarkdown(text: string): string {
-  return text
+  // URL을 플레이스홀더로 보호 (언더스코어 등이 마크다운으로 변환되지 않도록)
+  const urls: string[] = []
+  let processed = text.replace(/https?:\/\/\S+/g, (match) => {
+    urls.push(match)
+    return `__URL_PLACEHOLDER_${urls.length - 1}__`
+  })
+
+  processed = processed
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/_(.+?)_/g, '<em>$1</em>')
+    .replace(/(?<![a-zA-Z0-9\/_])_(.+?)_(?![a-zA-Z0-9\/_])/g, '<em>$1</em>')
     .replace(/~~(.+?)~~/g, '<del>$1</del>')
     .replace(/`(.+?)`/g, '<code>$1</code>')
     .replace(/\n/g, '<br/>')
+
+  // URL 복원 (클릭 가능한 링크로 변환)
+  processed = processed.replace(/__URL_PLACEHOLDER_(\d+)__/g, (_, idx) => {
+    const url = urls[Number(idx)]
+    const escaped = url.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    return `<a href="${escaped}" target="_blank" rel="noopener noreferrer" style="color:#1264a3;text-decoration:none">${escaped}</a>`
+  })
+
+  return processed
 }
 
 /** 이전 메시지와 같은 sender + 5분 이내 → grouped */
@@ -103,12 +168,9 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
   }, [emojiPickerOpen])
 
   const insertEmoji = useCallback((emoji: string) => {
-    const ta = textareaRef.current
-    if (!ta) return
-    const { selectionStart: s, value } = ta
-    ta.value = value.slice(0, s) + emoji + value.slice(s)
-    ta.focus()
-    ta.setSelectionRange(s + emoji.length, s + emoji.length)
+    const el = editorRef.current
+    if (!el) return
+    insertAtCursor(el, emoji)
     setEmojiPickerOpen(false)
   }, [])
 
@@ -138,9 +200,11 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
     document.addEventListener('mouseup', onMouseUp)
   }, [inputHeight, setInputMinHeight])
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const editorRef = useRef<HTMLDivElement>(null)
   const editTextareaRef = useRef<HTMLTextAreaElement>(null)
   const [attachedFiles, setAttachedFiles] = useState<UploadedFile[]>([])
+  const attachedFilesRef = useRef<UploadedFile[]>([])
+  const [dropzoneKey, setDropzoneKey] = useState(0)
   const [threadMessage, setThreadMessage] = useState<ChatMessage | null>(null)
   const [messageReactions, setMessageReactions] = useState<Record<string, Reaction[]>>({})
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -242,10 +306,66 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
 
   const { sendMessage } = useWebSocket({ workspaceId, channelId: channel.id })
 
-  const {
-    mentionQuery, mentionIndex, setMentionIndex, filteredMembers,
-    handleMentionChange, handleMentionKeyDown, insertMention
-  } = useMention(workspaceId, textareaRef)
+  // ── 멘션 인라인 상태 (contentEditable용) ─────────────────────────────────
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null)
+  const [mentionIndex, setMentionIndex] = useState(0)
+
+  const { data: members = [] } = useQuery<WorkspaceMember[]>({
+    queryKey: ['workspace-members', workspaceId],
+    queryFn: () => workspaceApi.getMembers(workspaceId).then((r) => r.data.data),
+    staleTime: 60_000,
+  })
+
+  const filteredMembers = useMemo(() => {
+    if (mentionQuery === null) return []
+    const lq = mentionQuery.toLowerCase()
+    return members.filter((m) =>
+      m.username.toLowerCase().includes(lq) || (m.displayName?.toLowerCase() ?? '').includes(lq)
+    ).slice(0, 6)
+  }, [members, mentionQuery])
+
+  useEffect(() => { setMentionIndex(0) }, [filteredMembers.length])
+
+  const detectMention = useCallback(() => {
+    const el = editorRef.current
+    if (!el) return
+    const sel = window.getSelection()
+    if (!sel || !sel.rangeCount) return
+    const range = sel.getRangeAt(0)
+    const cloned = range.cloneRange()
+    cloned.selectNodeContents(el)
+    cloned.setEnd(range.startContainer, range.startOffset)
+    const text = cloned.toString()
+    const match = text.match(/(?:^|\s)@([a-zA-Z0-9가-힣_]*)$/)
+    setMentionQuery(match ? match[1] : null)
+  }, [])
+
+  const insertMention = useCallback((member: WorkspaceMember) => {
+    const el = editorRef.current
+    if (!el) return
+    el.focus()
+    const sel = window.getSelection()
+    if (!sel || !sel.rangeCount) return
+    const range = sel.getRangeAt(0)
+    const cloned = range.cloneRange()
+    cloned.selectNodeContents(el)
+    cloned.setEnd(range.startContainer, range.startOffset)
+    const text = cloned.toString()
+    const match = text.match(/(?:^|\s)@([a-zA-Z0-9가-힣_]*)$/)
+    if (!match) return
+    const mentionLen = match[1].length + 1
+    const delRange = document.createRange()
+    delRange.setStart(range.startContainer, Math.max(0, range.startOffset - mentionLen))
+    delRange.setEnd(range.startContainer, range.startOffset)
+    delRange.deleteContents()
+    const node = document.createTextNode(`@${member.username} `)
+    delRange.insertNode(node)
+    delRange.setStartAfter(node)
+    delRange.collapse(true)
+    sel.removeAllRanges()
+    sel.addRange(delRange)
+    setMentionQuery(null)
+  }, [])
 
   // ── 스크롤 자동 하단 이동 ──────────────────────────────────────────────────
   const messageListRef = useRef<HTMLDivElement>(null)
@@ -292,14 +412,16 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
 
   useEffect(() => {
     messageApi.markAsRead(workspaceId, channel.id).catch(() => null)
+    useUnreadStore.getState().clearChannel(channel.id)
   }, [workspaceId, channel.id])
 
   const handleSend = useCallback(() => {
-    const text = textareaRef.current?.value.trim() ?? ''
-    if (!text && attachedFiles.length === 0) return
+    const el = editorRef.current
+    const text = htmlToMarkdown(el?.innerHTML ?? '').trim()
+    const files = attachedFilesRef.current
+    if (!text && files.length === 0) return
 
-    // 첨부 파일 URL을 메시지에 포함
-    const fileLinks = attachedFiles
+    const fileLinks = files
       .map((f) => f.attachment.fileUrl)
       .filter(Boolean)
       .join('\n')
@@ -307,29 +429,32 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
     const fullContent = [text, fileLinks].filter(Boolean).join('\n')
     if (fullContent) sendMessage(fullContent)
 
-    if (textareaRef.current) {
-      textareaRef.current.value = ''
-      textareaRef.current.style.height = 'auto'
-    }
+    if (el) el.innerHTML = ''
     setAttachedFiles([])
-  }, [sendMessage, attachedFiles])
+    attachedFilesRef.current = []
+    setDropzoneKey((k) => k + 1)
+    setMentionQuery(null)
+  }, [sendMessage])
 
   const handleKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
+    (e: KeyboardEvent<HTMLDivElement>) => {
+      // 멘션 드롭다운 키 처리
+      if (mentionQuery !== null && filteredMembers.length > 0) {
+        if (e.key === 'ArrowUp') { e.preventDefault(); setMentionIndex((p) => (p > 0 ? p - 1 : filteredMembers.length - 1)); return }
+        if (e.key === 'ArrowDown') { e.preventDefault(); setMentionIndex((p) => (p < filteredMembers.length - 1 ? p + 1 : 0)); return }
+        if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); insertMention(filteredMembers[mentionIndex]); return }
+        if (e.key === 'Escape') { e.preventDefault(); setMentionQuery(null); return }
+      }
+      if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
         e.preventDefault()
         handleSend()
       }
     },
-    [handleSend]
+    [mentionQuery, filteredMembers, mentionIndex, insertMention, handleSend]
   )
 
-  const handleAutoResize = (e: ChangeEvent<HTMLTextAreaElement>) => {
-    e.target.style.height = 'auto'
-    e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px'
-  }
-
   const handleFilesChange = useCallback((files: UploadedFile[]) => {
+    attachedFilesRef.current = files
     setAttachedFiles(files)
   }, [])
 
@@ -402,16 +527,37 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
               </div>
             ) : (
               <>
-                <p className={styles.messageContent} dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }} />
-                {extractImageUrls(msg.content).map((url, i) => (
-                  <img
-                    key={i}
-                    src={url}
-                    alt="첨부 이미지"
-                    className={styles.inlineImage}
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                  />
-                ))}
+                {(() => {
+                  const imageUrls = extractImageUrls(msg.content)
+                  const textOnly = stripImageUrls(msg.content)
+                  const previewUrl = extractPreviewUrl(msg.content)
+                  return (
+                    <>
+                      {textOnly && (
+                        <p className={styles.messageContent} dangerouslySetInnerHTML={{ __html: renderMarkdown(textOnly) }} />
+                      )}
+                      {imageUrls.map((url, i) => (
+                        <img
+                          key={i}
+                          src={url}
+                          alt="첨부 이미지"
+                          className={styles.inlineImage}
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                        />
+                      ))}
+                      {previewUrl && <LinkPreview url={previewUrl} />}
+                    </>
+                  )
+                })()}
+                {/* 답글 개수 버튼 */}
+                {(msg.replyCount ?? 0) > 0 && (
+                  <button
+                    className={styles.replyCountBtn}
+                    onClick={() => setThreadMessage(msg)}
+                  >
+                    💬 {msg.replyCount}개 답글
+                  </button>
+                )}
               </>
             )}
 
@@ -576,7 +722,7 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
         <div className={styles.inputArea}>
           {/* Drag-to-resize handle */}
           <div className={styles.resizeHandle} onMouseDown={handleResizeStart} title="드래그해서 크기 조절" />
-          <FileUploadDropzone onFilesChange={handleFilesChange}>
+          <FileUploadDropzone key={dropzoneKey} onFilesChange={handleFilesChange} inputId="channel-file-upload-input">
             <div className={styles.inputBox} style={{ position: 'relative' }}>
               <MentionDropdown
                 mentionQuery={mentionQuery} mentionIndex={mentionIndex} setMentionIndex={setMentionIndex}
@@ -584,31 +730,13 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
               />
               <div className={styles.inputToolbar}>
                 <button className={styles.toolbarBtn} title="파일 첨부"
-                  onClick={() => document.getElementById('file-upload-input')?.click()}>
+                  onClick={() => document.getElementById('channel-file-upload-input')?.click()}>
                   📎
                 </button>
                 <button className={styles.toolbarBtn} title="굵게 (Ctrl+B)" style={{ fontWeight: 700, fontSize: '0.875rem' }}
-                  onClick={() => {
-                    const ta = textareaRef.current
-                    if (!ta) return
-                    const { selectionStart: s, selectionEnd: e, value } = ta
-                    const sel = value.slice(s, e)
-                    const newVal = value.slice(0, s) + `**${sel || '굵게'}**` + value.slice(e)
-                    ta.value = newVal
-                    ta.focus()
-                    ta.setSelectionRange(s + 2, s + 2 + (sel || '굵게').length)
-                  }}>B</button>
+                  onMouseDown={(e) => { e.preventDefault(); editorRef.current?.focus(); document.execCommand('bold') }}>B</button>
                 <button className={styles.toolbarBtn} title="기울임 (Ctrl+I)" style={{ fontStyle: 'italic', fontSize: '0.875rem' }}
-                  onClick={() => {
-                    const ta = textareaRef.current
-                    if (!ta) return
-                    const { selectionStart: s, selectionEnd: e, value } = ta
-                    const sel = value.slice(s, e)
-                    const newVal = value.slice(0, s) + `_${sel || '기울임'}_` + value.slice(e)
-                    ta.value = newVal
-                    ta.focus()
-                    ta.setSelectionRange(s + 1, s + 1 + (sel || '기울임').length)
-                  }}>I</button>
+                  onMouseDown={(e) => { e.preventDefault(); editorRef.current?.focus(); document.execCommand('italic') }}>I</button>
                 <div ref={emojiPickerRef} style={{ position: 'relative', display: 'inline-block' }}>
                   <button className={styles.toolbarBtn} title="이모지" onClick={() => setEmojiPickerOpen((o) => !o)}>😊</button>
                   {emojiPickerOpen && (
@@ -620,14 +748,15 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
                   )}
                 </div>
               </div>
-              <textarea
-                ref={textareaRef}
-                className={styles.textarea}
-                placeholder={`#${channel.name}에 메시지 보내기`}
-                rows={1}
+              <div
+                ref={editorRef}
+                className={styles.richInput}
+                contentEditable
+                suppressContentEditableWarning
+                data-placeholder={`#${channel.name}에 메시지 보내기`}
                 style={{ minHeight: inputHeight }}
-                onKeyDown={(e) => handleMentionKeyDown(e, handleKeyDown)}
-                onChange={(e) => { handleAutoResize(e); handleMentionChange(e); }}
+                onKeyDown={handleKeyDown}
+                onInput={detectMention}
               />
               <div className={styles.inputFooter}>
                 <span className={styles.inputHint}>Enter로 전송 · Shift+Enter로 줄바꿈</span>

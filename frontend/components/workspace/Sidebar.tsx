@@ -29,6 +29,8 @@ import { useWorkspaceStore } from '@/store/workspaceStore'
 import { useNotificationStore } from '@/store/notificationStore'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useLayoutStore, THEMES, type ThemeId } from '@/store/layoutStore'
+import { usePresenceStore } from '@/store/presenceStore'
+import { useUnreadStore } from '@/store/unreadStore'
 import type { Channel, WorkspaceMember } from '@/types'
 import { toast } from 'sonner'
 
@@ -122,18 +124,30 @@ export function Sidebar({ workspaceId }: SidebarProps) {
     staleTime: 5 * 60_000,
   })
 
-  const { data: unreadCounts = {} } = useQuery({
+  useQuery({
     queryKey: ['unread-counts', workspaceId],
-    queryFn: () => unreadApi.getCounts(workspaceId).then((r) => r.data.data),
+    queryFn: async () => {
+      const counts = await unreadApi.getCounts(workspaceId).then((r) => r.data.data)
+      setChannelCounts(counts)
+      return counts
+    },
     staleTime: 15_000,
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
   })
 
-  const { data: onlineUserIds = [] } = useQuery({
+  const { setOnlineIds, getOnlineSet } = usePresenceStore()
+  const { channelUnread, dmUnread, setChannelCounts, clearChannel } = useUnreadStore()
+
+  // HTTP 폴링으로 초기 온라인 상태 로드 + 주기적 동기화
+  useQuery({
     queryKey: ['presence', workspaceId],
-    queryFn: () => presenceApi.getOnlineUsers(workspaceId).then((r) => r.data.data),
+    queryFn: async () => {
+      const ids = await presenceApi.getOnlineUsers(workspaceId).then((r) => r.data.data)
+      setOnlineIds(workspaceId, ids)
+      return ids
+    },
     staleTime: 15_000,
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
   })
 
   useQuery({
@@ -224,12 +238,12 @@ export function Sidebar({ workspaceId }: SidebarProps) {
 
   function handleChannelClick(channel: Channel) {
     setCurrentChannel(channel)
+    clearChannel(channel.id)  // 즉시 뱃지 초기화
     router.push(`/workspace/${workspaceId}/channel/${channel.id}`)
-    queryClient.invalidateQueries({ queryKey: ['unread-counts', workspaceId] })
   }
 
   const myMemberId = me?.id
-  const onlineSet = new Set(onlineUserIds)
+  const onlineSet = getOnlineSet(workspaceId)
 
   const iconTabs: Array<{
     id: Tab
@@ -379,7 +393,7 @@ export function Sidebar({ workspaceId }: SidebarProps) {
           <HomePanel
             workspaceId={workspaceId}
             channels={channels}
-            unreadCounts={unreadCounts}
+            unreadCounts={channelUnread}
             members={members}
             onlineSet={onlineSet}
             myMemberId={myMemberId}
@@ -404,7 +418,7 @@ export function Sidebar({ workspaceId }: SidebarProps) {
                 </button>
               </div>
               {channels.map((ch) => {
-                const unread = unreadCounts[ch.id] ?? 0
+                const unread = channelUnread[ch.id] ?? 0
                 return (
                   <div
                     key={ch.id}
@@ -435,19 +449,28 @@ export function Sidebar({ workspaceId }: SidebarProps) {
               </div>
               {members
                 .filter((m) => m.userId !== myMemberId)
-                .map((m) => (
-                  <div
-                    key={m.userId}
-                    className={styles.dmItem}
-                    onClick={() => router.push(`/workspace/${workspaceId}/dm/${m.userId}`)}
-                  >
-                    <span
-                      className={styles.onlineDot}
-                      style={{ backgroundColor: onlineSet.has(m.userId) ? '#2bac76' : '#97979b' }}
-                    />
-                    <span className={styles.channelName}>{m.displayName ?? m.username}</span>
-                  </div>
-                ))}
+                .map((m) => {
+                  const dmUnreadCount = dmUnread[m.userId] ?? 0
+                  return (
+                    <div
+                      key={m.userId}
+                      className={styles.dmItem}
+                      onClick={() => {
+                        useUnreadStore.getState().clearDm(m.userId)
+                        router.push(`/workspace/${workspaceId}/dm/${m.userId}`)
+                      }}
+                    >
+                      <span
+                        className={`${styles.onlineDot} ${onlineSet.has(m.userId) ? styles.onlineDotPulse : ''}`}
+                        style={{ backgroundColor: onlineSet.has(m.userId) ? '#2bac76' : '#97979b' }}
+                      />
+                      <span className={styles.channelName}>{m.displayName ?? m.username}</span>
+                      {dmUnreadCount > 0 && (
+                        <span className={styles.unreadBadge}>{dmUnreadCount > 99 ? '99+' : dmUnreadCount}</span>
+                      )}
+                    </div>
+                  )
+                })}
             </div>
           </div>
         )}

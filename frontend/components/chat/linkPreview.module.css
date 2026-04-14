@@ -1,0 +1,73 @@
+.card {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin-top: 6px;
+  max-width: 480px;
+  border: 1px solid #e0e0e0;
+  border-left: 3px solid #1264a3;
+  border-radius: 4px;
+  background: #f9f9f9;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.card:hover {
+  background: #f0f4f9;
+}
+
+.thumbnail {
+  flex-shrink: 0;
+  width: 80px;
+  min-height: 60px;
+  overflow: hidden;
+  background: #e8e8e8;
+}
+
+.thumbnailImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1d1c1d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.description {
+  font-size: 0.78rem;
+  color: #616061;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.urlText {
+  font-size: 0.73rem;
+  color: #868686;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

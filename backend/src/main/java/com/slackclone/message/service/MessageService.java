@@ -90,7 +90,29 @@ public class MessageService {
 
         MessageResponse response = MessageResponse.from(message);
         messagingTemplate.convertAndSend("/topic/channel/" + channelId, response);
+
+        // 채널 멤버(발신자 제외)에게 unread 이벤트 발송
+        notifyChannelUnread(channelId, workspaceId, sender.getId());
+
+        // @멘션 파싱 및 실시간 알림 전송 처리
+        processMentions(channelId, message);
+
         return response;
+    }
+
+    /** 채널 메시지 수신 시 멤버별 unread 카운트 실시간 알림 */
+    private void notifyChannelUnread(UUID channelId, UUID workspaceId, UUID senderId) {
+        channelMemberRepository.findAllByChannelId(channelId).forEach(cm -> {
+            User member = cm.getUser();
+            if (!member.getId().equals(senderId)) {
+                messagingTemplate.convertAndSendToUser(
+                        member.getEmail(),
+                        "/queue/unread",
+                        Map.of("type", "CHANNEL",
+                                "channelId", channelId.toString(),
+                                "workspaceId", workspaceId.toString()));
+            }
+        });
     }
 
     private void processMentions(UUID channelId, Message message) {
@@ -148,8 +170,18 @@ public class MessageService {
         String nextCursor = hasMore ? messages.get(messages.size() - 1)
                 .getCreatedAt().toString() : null;
 
+        // 답글 수 배치 조회 (N+1 방지)
+        List<UUID> messageIds = messages.stream().map(Message::getId).toList();
+        Map<UUID, Integer> replyCounts = new HashMap<>();
+        if (!messageIds.isEmpty()) {
+            messageRepository.countRepliesByParentIds(messageIds).forEach(row ->
+                    replyCounts.put((UUID) row[0], ((Long) row[1]).intValue()));
+        }
+
         return new MessagePageResponse(
-                messages.stream().map(MessageResponse::from).toList(),
+                messages.stream()
+                        .map(m -> MessageResponse.from(m, replyCounts.getOrDefault(m.getId(), 0)))
+                        .toList(),
                 hasMore,
                 nextCursor
         );

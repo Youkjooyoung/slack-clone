@@ -7,6 +7,7 @@ import styles from './FileUploadDropzone.module.css'
 interface FileUploadDropzoneProps {
   children: ReactNode
   onFilesChange: (files: UploadedFile[]) => void
+  inputId?: string
 }
 
 function formatBytes(bytes: number): string {
@@ -23,7 +24,7 @@ function fileIcon(mimeType: string): string {
   return '📎'
 }
 
-export function FileUploadDropzone({ children, onFilesChange }: FileUploadDropzoneProps) {
+export function FileUploadDropzone({ children, onFilesChange, inputId = 'file-upload-input' }: FileUploadDropzoneProps) {
   const { uploadedFiles, isUploading, progress, error, upload, removeFile, reset } =
     useFileUpload()
   const [isDragging, setIsDragging] = useState(false)
@@ -91,7 +92,7 @@ export function FileUploadDropzone({ children, onFilesChange }: FileUploadDropzo
 
       {/* 숨겨진 파일 인풋 */}
       <input
-        id="file-upload-input"
+        id={inputId}
         type="file"
         style={{ display: 'none' }}
         multiple

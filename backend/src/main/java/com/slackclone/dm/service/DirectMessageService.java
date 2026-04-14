@@ -65,6 +65,14 @@ public class DirectMessageService {
         String topic = dmTopic(workspaceId, sender.getId(), receiverId);
         messagingTemplate.convertAndSend(topic, response);
 
+        // 수신자에게 unread DM 이벤트 발송
+        messagingTemplate.convertAndSendToUser(
+                receiver.getEmail(),
+                "/queue/unread",
+                java.util.Map.of("type", "DM",
+                        "fromUserId", sender.getId().toString(),
+                        "workspaceId", workspaceId.toString()));
+
         return response;
     }
 

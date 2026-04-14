@@ -1,6 +1,7 @@
 'use client'
 
 import type { Channel, WorkspaceMember, AppNotification } from '@/types'
+import { useUnreadStore } from '@/store/unreadStore'
 import styles from './panel.module.css'
 
 interface HomePanelProps {
@@ -26,13 +27,15 @@ function formatRelative(iso: string) {
 }
 
 export function HomePanel({
-  channels, unreadCounts, members, onlineSet,
+  channels, members, onlineSet,
   myMemberId, notifications, onChannelClick, onDmClick,
 }: HomePanelProps) {
+  const { channelUnread, dmUnread } = useUnreadStore()
+
   // Sort channels: unread first, then alphabetical
   const sorted = [...channels].sort((a, b) => {
-    const ua = unreadCounts[a.id] ?? 0
-    const ub = unreadCounts[b.id] ?? 0
+    const ua = channelUnread[a.id] ?? 0
+    const ub = channelUnread[b.id] ?? 0
     if (ub !== ua) return ub - ua
     return a.name.localeCompare(b.name)
   })
@@ -67,7 +70,7 @@ export function HomePanel({
         {/* 채널 목록 */}
         <div className={styles.sectionLabel}>채널</div>
         {sorted.map((ch) => {
-          const unread = unreadCounts[ch.id] ?? 0
+          const unread = channelUnread[ch.id] ?? 0
           return (
             <div key={ch.id} className={styles.item} onClick={() => onChannelClick(ch)}>
               <span className={styles.itemIcon}>#</span>
@@ -76,6 +79,7 @@ export function HomePanel({
                 <span className={styles.itemBadge}>{unread > 99 ? '99+' : unread}</span>
               )}
             </div>
+
           )
         })}
 
@@ -84,15 +88,21 @@ export function HomePanel({
           <>
             <div className={styles.divider} />
             <div className={styles.sectionLabel}>다이렉트 메시지</div>
-            {others.map((m) => (
-              <div key={m.userId} className={styles.item} onClick={() => onDmClick(m.userId)}>
-                <span
-                  className={styles.onlineDot}
-                  style={{ backgroundColor: onlineSet.has(m.userId) ? '#2bac76' : '#97979b' }}
-                />
-                <span className={styles.itemText}>{m.displayName ?? m.username}</span>
-              </div>
-            ))}
+            {others.map((m) => {
+              const dmCount = dmUnread[m.userId] ?? 0
+              return (
+                <div key={m.userId} className={styles.item} onClick={() => onDmClick(m.userId)}>
+                  <span
+                    className={`${styles.onlineDot} ${onlineSet.has(m.userId) ? styles.onlineDotPulse : ''}`}
+                    style={{ backgroundColor: onlineSet.has(m.userId) ? '#2bac76' : '#97979b' }}
+                  />
+                  <span className={styles.itemText}>{m.displayName ?? m.username}</span>
+                  {dmCount > 0 && (
+                    <span className={styles.itemBadge}>{dmCount > 99 ? '99+' : dmCount}</span>
+                  )}
+                </div>
+              )
+            })}
           </>
         )}
       </div>
