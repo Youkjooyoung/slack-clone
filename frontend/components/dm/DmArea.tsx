@@ -14,6 +14,7 @@ import type { UploadedFile } from '@/hooks/useFileUpload'
 import { usePresenceStore } from '@/store/presenceStore'
 import { useUnreadStore } from '@/store/unreadStore'
 import { LinkPreview, extractPreviewUrl } from '@/components/chat/LinkPreview'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
 
 interface DmAreaProps {
   workspaceId: string
@@ -557,6 +558,13 @@ export function DmArea({ workspaceId, targetUser }: DmAreaProps) {
           <span style={{ fontSize: '0.6875rem', color: isTargetOnline ? '#2bac76' : '#97979b' }}>
             {isTargetOnline ? '온라인' : '오프라인'}
           </span>
+        </div>
+        <div style={{ flex: 1 }} />
+        <div className={styles.headerActionGroup}>
+          <button className={styles.headerActionBtn} title="검색" onClick={() => {}}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          <NotificationBell />
         </div>
       </div>
 

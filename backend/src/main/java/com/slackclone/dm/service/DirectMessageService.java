@@ -82,9 +82,13 @@ public class DirectMessageService {
         validateWorkspaceMember(workspaceId, user.getId());
 
         OffsetDateTime cursor = cursorStr != null ? OffsetDateTime.parse(cursorStr) : null;
-        List<DirectMessage> messages = dmRepository.findConversation(
-                workspaceId, user.getId(), targetUserId, cursor,
-                PageRequest.of(0, PAGE_SIZE + 1));
+        List<DirectMessage> messages = cursor != null
+                ? dmRepository.findConversationBefore(
+                        workspaceId, user.getId(), targetUserId, cursor,
+                        PageRequest.of(0, PAGE_SIZE + 1))
+                : dmRepository.findConversation(
+                        workspaceId, user.getId(), targetUserId,
+                        PageRequest.of(0, PAGE_SIZE + 1));
 
         boolean hasMore = messages.size() > PAGE_SIZE;
         if (hasMore) messages = messages.subList(0, PAGE_SIZE);

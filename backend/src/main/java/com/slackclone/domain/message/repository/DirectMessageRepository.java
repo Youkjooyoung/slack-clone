@@ -19,10 +19,26 @@ public interface DirectMessageRepository extends JpaRepository<DirectMessage, UU
             WHERE dm.workspace.id = :workspaceId
               AND ((dm.sender.id = :userId1 AND dm.receiver.id = :userId2)
                    OR (dm.sender.id = :userId2 AND dm.receiver.id = :userId1))
-              AND (:cursor IS NULL OR dm.createdAt < :cursor)
             ORDER BY dm.createdAt DESC
             """)
     List<DirectMessage> findConversation(
+            @Param("workspaceId") UUID workspaceId,
+            @Param("userId1") UUID userId1,
+            @Param("userId2") UUID userId2,
+            Pageable pageable
+    );
+
+    @Query("""
+            SELECT dm FROM DirectMessage dm
+            JOIN FETCH dm.sender
+            JOIN FETCH dm.receiver
+            WHERE dm.workspace.id = :workspaceId
+              AND ((dm.sender.id = :userId1 AND dm.receiver.id = :userId2)
+                   OR (dm.sender.id = :userId2 AND dm.receiver.id = :userId1))
+              AND dm.createdAt < :cursor
+            ORDER BY dm.createdAt DESC
+            """)
+    List<DirectMessage> findConversationBefore(
             @Param("workspaceId") UUID workspaceId,
             @Param("userId1") UUID userId1,
             @Param("userId2") UUID userId2,

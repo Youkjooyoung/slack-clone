@@ -63,8 +63,12 @@ services:
       AWS_ACCESS_KEY: ${AWS_ACCESS_KEY}
       AWS_SECRET_KEY: ${AWS_SECRET_KEY}
       S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+      # S3 env vars are intentionally unset — backend falls back to local file storage.
+      # Set aws.s3.* to enable direct-to-S3 presigned uploads.
     ports:
       - "${BACKEND_PORT:-8080}:8080"
+    volumes:
+      - uploads_data:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -97,6 +101,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  uploads_data:
 
 networks:
   slack-clone-network:

@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const PUBLIC_PATHS = ['/auth/login', '/auth/register']
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  const isPublic = PUBLIC_PATHS.some((path) => pathname.startsWith(path))
+  const isLanding = pathname === '/'
+  const isAuthPage = PUBLIC_PATHS.some((path) => pathname.startsWith(path))
+  const isPublic = isLanding || isAuthPage
 
   const authStorage = request.cookies.get('auth-storage')?.value
   let isAuthenticated = false
@@ -27,7 +29,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  if (isAuthenticated && isPublic) {
+  if (isAuthenticated && isAuthPage) {
     return NextResponse.redirect(new URL('/workspace', request.url))
   }
 
