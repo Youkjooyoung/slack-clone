@@ -131,6 +131,20 @@ public class WorkspaceService {
                 .role(WorkspaceRole.MEMBER)
                 .build();
         workspaceMemberRepository.save(newMember);
+
+        List<Channel> publicChannels = channelRepository.findAllByWorkspaceId(workspaceId).stream()
+                .filter(c -> !c.isPrivate())
+                .toList();
+        for (Channel ch : publicChannels) {
+            if (!channelMemberRepository.existsByChannelIdAndUserId(ch.getId(), invitee.getId())) {
+                channelMemberRepository.save(ChannelMember.builder()
+                        .channel(ch)
+                        .user(invitee)
+                        .role(ChannelRole.MEMBER)
+                        .build());
+            }
+        }
+
         return WorkspaceMemberResponse.from(newMember);
     }
 

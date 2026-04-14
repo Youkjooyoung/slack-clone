@@ -44,15 +44,6 @@ const ROLE_LABEL: Record<string, string> = {
   GUEST: '게스트',
 }
 
-const WS_GRADIENTS = [
-  'linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%)',
-  'linear-gradient(135deg, #1164a3 0%, #0ea5e9 100%)',
-  'linear-gradient(135deg, #007a5a 0%, #10b981 100%)',
-  'linear-gradient(135deg, #c7224b 0%, #f43f5e 100%)',
-  'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)',
-  'linear-gradient(135deg, #1e3a5f 0%, #3b82f6 100%)',
-]
-
 export default function WorkspaceListPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -60,17 +51,21 @@ export default function WorkspaceListPage() {
   const [open, setOpen] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
 
-  // Redirect to login if not authenticated
+  // Redirect to home if not authenticated
   useEffect(() => {
     if (!accessToken) {
-      router.replace('/auth/login')
+      router.replace('/')
     }
   }, [accessToken, router])
 
   function handleLogout() {
     clearAuth()
     queryClient.clear()
-    router.push('/auth/login')
+    if (typeof window !== 'undefined') {
+      window.location.href = '/'
+    } else {
+      router.replace('/')
+    }
   }
 
   const { data, isLoading, isError, error, refetch } = useQuery({
@@ -78,6 +73,7 @@ export default function WorkspaceListPage() {
     queryFn: () => workspaceApi.getMyWorkspaces().then((r) => r.data.data),
     staleTime: 60_000,
     retry: 1,
+    enabled: !!accessToken,
   })
 
   const form = useForm<CreateFormValues>({
@@ -115,8 +111,8 @@ export default function WorkspaceListPage() {
     <div className={styles.page}>
       {/* 브랜드 */}
       <div className={styles.brand}>
-        <div className={styles.brandIcon}>💬</div>
-        <span className={styles.brandName}>SlackClone</span>
+        <div className={styles.brandIcon}>T</div>
+        <span className={styles.brandName}>투톡</span>
       </div>
 
       {/* 메인 카드 */}
@@ -172,16 +168,13 @@ export default function WorkspaceListPage() {
               </div>
             ) : (
               <div className={styles.wsList}>
-                {workspaces.map((ws, i) => (
+                {workspaces.map((ws) => (
                   <button
                     key={ws.id}
                     className={styles.wsItem}
                     onClick={() => router.push(`/workspace/${ws.id}`)}
                   >
-                    <div
-                      className={styles.wsAvatar}
-                      style={{ background: WS_GRADIENTS[i % WS_GRADIENTS.length] }}
-                    >
+                    <div className={styles.wsAvatar}>
                       {ws.iconUrl
                         ? <img src={ws.iconUrl} alt={ws.name} width={36} height={36} style={{ borderRadius: 8 }} />
                         : ws.name.charAt(0).toUpperCase()}

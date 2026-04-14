@@ -6,8 +6,8 @@ import { Providers } from '@/components/providers'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Slack Clone',
-  description: '사내 메신저 서비스',
+  title: '투톡',
+  description: '팀의 소통을 더 빠르고 더 스마트하게',
   manifest: '/manifest.json',
 }
 

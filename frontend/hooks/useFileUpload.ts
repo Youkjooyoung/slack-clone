@@ -2,7 +2,6 @@
 
 import { useState, useCallback } from 'react'
 import axios, { AxiosError } from 'axios'
-import { fileApi } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import type { Attachment } from '@/types'
 
@@ -47,26 +46,6 @@ function validateFile(file: File): string | null {
   return null
 }
 
-function uploadToS3(presignedUrl: string, file: File, onProgress: (pct: number) => void): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest()
-    xhr.open('PUT', presignedUrl)
-    xhr.setRequestHeader('Content-Type', file.type)
-
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100))
-    }
-
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) resolve()
-      else reject(new Error(`S3 업로드 실패 (status: ${xhr.status})`))
-    }
-
-    xhr.onerror = () => reject(new Error('네트워크 오류로 업로드에 실패했습니다.'))
-    xhr.send(file)
-  })
-}
-
 export function useFileUpload(): UseFileUploadReturn {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   const [isUploading, setIsUploading] = useState(false)
@@ -86,45 +65,23 @@ export function useFileUpload(): UseFileUploadReturn {
     setProgress(0)
 
     try {
-      let attachment: Attachment
+      const token = useAuthStore.getState().accessToken
+      const formData = new FormData()
+      formData.append('file', file)
 
-      try {
-        // 1a. S3 presigned URL 방식 시도
-        const { data } = await fileApi.requestUpload({
-          fileName: file.name,
-          mimeType: file.type,
-          fileSize: file.size,
-        })
-        attachment = data.data
-        // S3에 직접 업로드
-        await uploadToS3(attachment.presignedUrl, file, setProgress)
-      } catch (err) {
-        // S3 미설정(503) 시 로컬 업로드로 폴백
-        const status = (err as AxiosError)?.response?.status
-        if (status !== 503) throw err
-
-        // 항상 최신 토큰 사용 (stale closure 방지)
-        const token = useAuthStore.getState().accessToken
-
-        const formData = new FormData()
-        formData.append('file', file)
-
-        // Content-Type 헤더를 수동으로 설정하지 않는다.
-        // axios가 FormData를 감지해 브라우저가 boundary 포함 Content-Type을 자동 설정하도록 한다.
-        const { data: localData } = await axios.post<{ success: boolean; data: Attachment }>(
-          `${API_BASE}/api/files/upload/local`,
-          formData,
-          {
-            headers: {
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-            onUploadProgress: (e) => {
-              if (e.total) setProgress(Math.round((e.loaded / e.total) * 100))
-            },
-          }
-        )
-        attachment = localData.data
-      }
+      const { data: localData } = await axios.post<{ success: boolean; data: Attachment }>(
+        `${API_BASE}/api/files/upload/local`,
+        formData,
+        {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          onUploadProgress: (e) => {
+            if (e.total) setProgress(Math.round((e.loaded / e.total) * 100))
+          },
+        }
+      )
+      const attachment = localData.data
 
       // 이미지 미리보기 URL 생성
       const previewUrl = ALLOWED_TYPES[file.type] === 'image'

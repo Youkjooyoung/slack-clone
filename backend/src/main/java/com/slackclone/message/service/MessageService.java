@@ -5,6 +5,7 @@ import com.slackclone.common.exception.ErrorCode;
 import com.slackclone.common.util.SecurityUtil;
 import com.slackclone.domain.channel.entity.Channel;
 import com.slackclone.domain.channel.entity.ChannelMember;
+import com.slackclone.domain.channel.entity.ChannelRole;
 import com.slackclone.domain.channel.repository.ChannelMemberRepository;
 import com.slackclone.domain.channel.repository.ChannelRepository;
 import com.slackclone.domain.message.entity.Message;
@@ -148,7 +149,7 @@ public class MessageService {
         }
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public MessagePageResponse getMessages(UUID workspaceId, UUID channelId,
                                            String cursorStr, String senderEmail) {
         User user = securityUtil.getCurrentUser();
@@ -157,7 +158,16 @@ public class MessageService {
             throw new BusinessException(ErrorCode.WORKSPACE_ACCESS_DENIED);
         }
         if (!channelMemberRepository.existsByChannelIdAndUserId(channelId, user.getId())) {
-            throw new BusinessException(ErrorCode.CHANNEL_ACCESS_DENIED);
+            Channel channel = channelRepository.findById(channelId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.CHANNEL_NOT_FOUND));
+            if (channel.isPrivate() || !channel.getWorkspace().getId().equals(workspaceId)) {
+                throw new BusinessException(ErrorCode.CHANNEL_ACCESS_DENIED);
+            }
+            channelMemberRepository.save(ChannelMember.builder()
+                    .channel(channel)
+                    .user(user)
+                    .role(ChannelRole.MEMBER)
+                    .build());
         }
 
         OffsetDateTime cursor = cursorStr != null ? OffsetDateTime.parse(cursorStr) : null;

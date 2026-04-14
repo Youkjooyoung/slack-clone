@@ -45,13 +45,13 @@ public class FileUploadService {
     private S3Presigner s3Presigner;
     private final AttachmentRepository attachmentRepository;
 
-    @Value("${aws.s3.bucket-name}")
+    @Value("${aws.s3.bucket-name:}")
     private String bucketName;
 
-    @Value("${aws.s3.region}")
+    @Value("${aws.s3.region:ap-northeast-2}")
     private String region;
 
-    @Value("${aws.s3.presigned-url-expiry-minutes}")
+    @Value("${aws.s3.presigned-url-expiry-minutes:15}")
     private int presignedUrlExpiryMinutes;
 
     @Transactional

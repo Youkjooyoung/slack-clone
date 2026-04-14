@@ -110,7 +110,7 @@ api.interceptors.response.use(
       flushQueue(err, null)
       if (typeof document !== 'undefined') {
         document.cookie = 'auth-storage=; path=/; max-age=0'
-        window.location.href = '/auth/login'
+        window.location.href = '/'
       }
       return Promise.reject(err)
     } finally {

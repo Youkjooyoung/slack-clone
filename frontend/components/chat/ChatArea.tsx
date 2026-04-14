@@ -22,6 +22,7 @@ import type { UploadedFile } from '@/hooks/useFileUpload'
 import { MentionDropdown } from '@/hooks/useMention'
 import { ThreadPanel } from './ThreadPanel'
 import { LinkPreview, extractPreviewUrl } from './LinkPreview'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { toast } from 'sonner'
 import styles from './chat.module.css'
 
@@ -652,14 +653,26 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
             <>
               <span className={styles.headerHash}>#</span>
               <span className={styles.headerName}>{channel.name}</span>
-              {channel.description && (
+              {members.length > 0 && (
                 <>
                   <div className={styles.headerSep} />
-                  <span className={styles.headerDesc}>{channel.description}</span>
+                  <span className={styles.headerMemberCount}>멤버 {members.length}명</span>
                 </>
               )}
               <div style={{ flex: 1 }} />
-              <button className={styles.headerActionBtn} onClick={handleSearchOpen} title="검색">🔍</button>
+              <div className={styles.headerActionGroup}>
+                <button className={styles.headerActionBtn} onClick={handleSearchOpen} title="검색">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </button>
+                <button
+                  className={styles.headerActionBtn}
+                  title="멘션"
+                  onClick={() => { editorRef.current?.focus(); insertAtCursor(editorRef.current!, '@') }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"/></svg>
+                </button>
+                <NotificationBell />
+              </div>
             </>
           )}
         </div>
