@@ -6,6 +6,8 @@ import { fileApi } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import type { Attachment } from '@/types'
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'
+
 export interface UploadedFile {
   attachment: Attachment
   file: File
@@ -70,7 +72,6 @@ export function useFileUpload(): UseFileUploadReturn {
   const [isUploading, setIsUploading] = useState(false)
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  const { accessToken } = useAuthStore()
 
   const upload = useCallback(async (file: File): Promise<UploadedFile | null> => {
     setError(null)
@@ -102,15 +103,20 @@ export function useFileUpload(): UseFileUploadReturn {
         const status = (err as AxiosError)?.response?.status
         if (status !== 503) throw err
 
+        // 항상 최신 토큰 사용 (stale closure 방지)
+        const token = useAuthStore.getState().accessToken
+
         const formData = new FormData()
         formData.append('file', file)
-        const { data: localData } = await axios.post<{ data: Attachment }>(
-          'http://localhost:8080/api/files/upload/local',
+
+        // Content-Type 헤더를 수동으로 설정하지 않는다.
+        // axios가 FormData를 감지해 브라우저가 boundary 포함 Content-Type을 자동 설정하도록 한다.
+        const { data: localData } = await axios.post<{ success: boolean; data: Attachment }>(
+          `${API_BASE}/api/files/upload/local`,
           formData,
           {
             headers: {
-              'Content-Type': 'multipart/form-data',
-              ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
             onUploadProgress: (e) => {
               if (e.total) setProgress(Math.round((e.loaded / e.total) * 100))
@@ -130,13 +136,17 @@ export function useFileUpload(): UseFileUploadReturn {
       setProgress(100)
       return uploaded
     } catch (err) {
-      const message = err instanceof Error ? err.message : '파일 업로드에 실패했습니다.'
+      console.error('[useFileUpload] 업로드 실패:', err)
+      const axiosErr = err as AxiosError<{ message?: string }>
+      const message =
+        axiosErr.response?.data?.message ??
+        (err instanceof Error ? err.message : '파일 업로드에 실패했습니다.')
       setError(message)
       return null
     } finally {
       setIsUploading(false)
     }
-  }, [accessToken])
+  }, [])
 
   const removeFile = useCallback((attachmentId: string) => {
     setUploadedFiles((prev) => {

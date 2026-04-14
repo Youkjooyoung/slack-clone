@@ -5,7 +5,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/slackclone
     username: slackclone
-    password: slackclone1234
+    password: 68186234
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -21,6 +21,11 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 30MB
 
   data:
     redis:
@@ -45,7 +50,7 @@ aws:
 
 local:
   upload:
-    dir: /tmp/uploads
+    dir: /app/uploads
     base-url: http://localhost:8080
 
 logging:

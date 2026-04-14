@@ -20,6 +20,10 @@ WORKDIR /app
 
 # 보안: root가 아닌 별도 사용자 실행
 RUN groupadd --system appgroup && useradd --system --gid appgroup appuser
+
+# 업로드 디렉토리를 appuser 소유로 미리 생성
+RUN mkdir -p /app/uploads && chown appuser:appgroup /app/uploads
+
 USER appuser
 
 COPY --from=builder /app/build/libs/*.jar app.jar
