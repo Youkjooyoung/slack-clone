@@ -282,6 +282,10 @@
   flex-shrink: 0;
 }
 
+.wsAvatarImg {
+  border-radius: 8px;
+}
+
 .wsDivider {
   height: 1px;
   background: rgba(255, 255, 255, 0.06);

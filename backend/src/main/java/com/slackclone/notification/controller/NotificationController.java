@@ -1,7 +1,6 @@
 package com.slackclone.notification.controller;
 
 import com.slackclone.common.response.ApiResponse;
-import com.slackclone.common.util.SecurityUtil;
 import com.slackclone.notification.dto.NotificationResponse;
 import com.slackclone.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
@@ -18,29 +17,27 @@ import java.util.UUID;
 public class NotificationController {
 
     private final NotificationService notificationService;
-    private final SecurityUtil securityUtil;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<NotificationResponse>>> getMyNotifications() {
-        return ResponseEntity.ok(ApiResponse.success(
-                notificationService.getMyNotifications(securityUtil.getCurrentUser())));
+        return ResponseEntity.ok(ApiResponse.success(notificationService.getMyNotifications()));
     }
 
     @GetMapping("/unread-count")
     public ResponseEntity<ApiResponse<Map<String, Long>>> getUnreadCount() {
-        long count = notificationService.countUnread(securityUtil.getCurrentUser());
+        long count = notificationService.countUnread();
         return ResponseEntity.ok(ApiResponse.success(Map.of("count", count)));
     }
 
     @PatchMapping("/{notificationId}/read")
     public ResponseEntity<ApiResponse<Void>> markAsRead(@PathVariable UUID notificationId) {
-        notificationService.markAsRead(notificationId, securityUtil.getCurrentUser());
+        notificationService.markAsRead(notificationId);
         return ResponseEntity.ok(ApiResponse.success("읽음 처리되었습니다."));
     }
 
     @PatchMapping("/read-all")
     public ResponseEntity<ApiResponse<Void>> markAllAsRead() {
-        notificationService.markAllAsRead(securityUtil.getCurrentUser());
+        notificationService.markAllAsRead();
         return ResponseEntity.ok(ApiResponse.success("모두 읽음 처리되었습니다."));
     }
 }

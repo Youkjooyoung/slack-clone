@@ -10,17 +10,11 @@ import com.slackclone.file.service.FileUploadService;
 import com.slackclone.file.service.LocalFileUploadService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 
 @RestController
@@ -32,10 +26,6 @@ public class FileUploadController {
     private final LocalFileUploadService localFileUploadService;
     private final SecurityUtil securityUtil;
 
-    @Value("${local.upload.dir:uploads}")
-    private String uploadDir;
-
-    /** S3 presigned URL 방식 (S3 설정 시) */
     @PostMapping("/upload")
     public ResponseEntity<ApiResponse<FileUploadResponse>> requestUpload(
             @Valid @RequestBody FileUploadRequest request
@@ -45,8 +35,7 @@ public class FileUploadController {
         return ResponseEntity.ok(ApiResponse.success("Presigned URL이 생성되었습니다.", response));
     }
 
-    /** 로컬 저장소 직접 업로드 (S3 미설정 시 폴백) */
-    @PostMapping(value = "/upload/local", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/upload/local", consumes = "multipart/form-data")
     public ResponseEntity<ApiResponse<FileUploadResponse>> uploadLocal(
             @RequestParam("file") MultipartFile file
     ) {
@@ -55,28 +44,12 @@ public class FileUploadController {
         return ResponseEntity.ok(ApiResponse.success("파일이 업로드되었습니다.", response));
     }
 
-    /** 로컬 저장 파일 서빙 */
     @GetMapping("/serve/{userId}/{fileName}")
     public ResponseEntity<Resource> serveFile(
             @PathVariable String userId,
             @PathVariable String fileName
     ) {
-        try {
-            Path filePath = Paths.get(uploadDir, userId, fileName);
-            Resource resource = new UrlResource(filePath.toUri());
-            if (!resource.exists()) return ResponseEntity.notFound().build();
-
-            String contentType = fileName.matches(".*\\.(png|jpg|jpeg|gif|webp)$")
-                    ? "image/" + fileName.replaceAll(".*\\.", "").replace("jpg", "jpeg")
-                    : MediaType.APPLICATION_OCTET_STREAM_VALUE;
-
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileName + "\"")
-                    .contentType(MediaType.parseMediaType(contentType))
-                    .body(resource);
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
+        return localFileUploadService.serveLocalFile(userId, fileName);
     }
 
     @GetMapping("/my")

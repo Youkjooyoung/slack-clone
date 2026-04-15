@@ -109,9 +109,9 @@ export default function AnimatedChat() {
         <div className={styles.row}>
           <div className={`${styles.avatar} ${styles.avatarTyping}`}>⋯</div>
           <div className={styles.typingDots}>
-            <span className={styles.dot} style={{ animationDelay: '0ms' }} />
-            <span className={styles.dot} style={{ animationDelay: '150ms' }} />
-            <span className={styles.dot} style={{ animationDelay: '300ms' }} />
+            <span className={styles.dot} />
+            <span className={styles.dot} />
+            <span className={styles.dot} />
           </div>
         </div>
       )}

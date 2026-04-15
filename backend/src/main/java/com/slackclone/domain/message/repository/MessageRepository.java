@@ -44,7 +44,6 @@ public interface MessageRepository extends JpaRepository<Message, UUID>, Message
                              @Param("since") OffsetDateTime since,
                              @Param("userId") UUID userId);
 
-    /** 부모 메시지 ID 목록에 대한 답글 개수를 배치로 조회 */
     @Query("""
             SELECT m.parent.id, COUNT(m)
             FROM Message m

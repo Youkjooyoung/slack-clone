@@ -32,7 +32,6 @@ export function HomePanel({
 }: HomePanelProps) {
   const { channelUnread, dmUnread } = useUnreadStore()
 
-  // Sort channels: unread first, then alphabetical
   const sorted = [...channels].sort((a, b) => {
     const ua = channelUnread[a.id] ?? 0
     const ub = channelUnread[b.id] ?? 0
@@ -47,7 +46,6 @@ export function HomePanel({
     <div className={styles.panel}>
       <div className={styles.panelScroll}>
 
-        {/* 알림 미리보기 */}
         {recentNotifs.length > 0 && (
           <>
             <div className={styles.sectionLabel}>새 알림</div>
@@ -67,7 +65,6 @@ export function HomePanel({
           </>
         )}
 
-        {/* 채널 목록 */}
         <div className={styles.sectionLabel}>채널</div>
         {sorted.map((ch) => {
           const unread = channelUnread[ch.id] ?? 0
@@ -83,7 +80,6 @@ export function HomePanel({
           )
         })}
 
-        {/* DM 목록 */}
         {others.length > 0 && (
           <>
             <div className={styles.divider} />
@@ -93,8 +89,7 @@ export function HomePanel({
               return (
                 <div key={m.userId} className={styles.item} onClick={() => onDmClick(m.userId)}>
                   <span
-                    className={`${styles.onlineDot} ${onlineSet.has(m.userId) ? styles.onlineDotPulse : ''}`}
-                    style={{ backgroundColor: onlineSet.has(m.userId) ? '#2bac76' : '#97979b' }}
+                    className={`${styles.onlineDot} ${onlineSet.has(m.userId) ? `${styles.onlineDotPulse} ${styles.onlineDotOnline}` : styles.onlineDotOffline}`}
                   />
                   <span className={styles.itemText}>{m.displayName ?? m.username}</span>
                   {dmCount > 0 && (

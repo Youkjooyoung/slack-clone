@@ -34,7 +34,6 @@ function getTypeIcon(type: string) {
 }
 
 export function ActivityPanel({ notifications, onNotifRead, onReadAll }: ActivityPanelProps) {
-  // Group by date
   const grouped = notifications.reduce<Record<string, AppNotification[]>>((acc, n) => {
     const label = formatDateLabel(n.createdAt)
     if (!acc[label]) acc[label] = []

@@ -1,8 +1,8 @@
 import { create } from 'zustand'
 
 interface UnreadState {
-  channelUnread: Record<string, number>  // channelId → unread count
-  dmUnread: Record<string, number>       // fromUserId → unread count
+  channelUnread: Record<string, number>
+  dmUnread: Record<string, number>
 
   setChannelCounts: (counts: Record<string, number>) => void
   incrementChannel: (channelId: string) => void

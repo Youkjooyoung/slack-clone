@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, useEffect, type RefObject, type ChangeE
 import { useQuery } from '@tanstack/react-query'
 import { workspaceApi } from '@/lib/api'
 import type { WorkspaceMember } from '@/types'
+import styles from './mention.module.css'
 
 export function useMention(workspaceId: string, textareaRef: RefObject<HTMLTextAreaElement>) {
   const [mentionQuery, setMentionQuery] = useState<string | null>(null)
@@ -106,40 +107,27 @@ export function MentionDropdown({
   mentionQuery: string | null, mentionIndex: number, setMentionIndex: (i: number) => void,
   filteredMembers: WorkspaceMember[], insertMention: (m: WorkspaceMember) => void
 }) {
-  if (mentionQuery === null || filteredMembers.length === 0) return null;
+  if (mentionQuery === null || filteredMembers.length === 0) return null
 
   return (
-    <div style={{
-      position: 'absolute', bottom: '100%', left: 0, marginBottom: '8px',
-      backgroundColor: '#fff', border: '1px solid #e8e8e8', borderRadius: '8px',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.1)', width: '240px', zIndex: 50,
-      display: 'flex', flexDirection: 'column', padding: '4px 0'
-    }}>
+    <div className={styles.dropdown}>
       {filteredMembers.map((m, i) => {
-        const isActive = i === mentionIndex;
+        const isActive = i === mentionIndex
         return (
           <div
             key={m.userId}
+            className={`${styles.item} ${isActive ? styles.itemActive : ''}`}
             onClick={() => insertMention(m)}
             onMouseEnter={() => setMentionIndex(i)}
-            style={{
-              padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '8px',
-              cursor: 'pointer', fontSize: '0.875rem',
-              backgroundColor: isActive ? '#1164a3' : 'transparent',
-              color: isActive ? '#fff' : '#1d1c1d'
-            }}
           >
-            <div style={{
-              width: 20, height: 20, borderRadius: 4, flexShrink: 0,
-              backgroundColor: isActive ? 'rgba(255,255,255,0.2)' : '#e8e8e8',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '0.625rem', fontWeight: 700, color: isActive ? '#fff' : '#1d1c1d'
-            }}>
+            <div className={`${styles.itemAvatar} ${isActive ? styles.itemAvatarActive : ''}`}>
               {m.displayName?.charAt(0).toUpperCase() ?? m.username.charAt(0).toUpperCase()}
             </div>
-            <span style={{ fontWeight: isActive ? 600 : 400 }}>{m.username}</span>
+            <span className={`${styles.itemUsername} ${isActive ? styles.itemUsernameActive : ''}`}>
+              {m.username}
+            </span>
             {m.displayName && m.displayName !== m.username && (
-              <span style={{ fontSize: '0.75rem', color: isActive ? 'rgba(255,255,255,0.7)' : '#616061' }}>
+              <span className={`${styles.itemDisplayName} ${isActive ? styles.itemDisplayNameActive : ''}`}>
                 ({m.displayName})
               </span>
             )}

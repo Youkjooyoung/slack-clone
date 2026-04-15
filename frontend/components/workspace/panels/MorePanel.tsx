@@ -17,7 +17,6 @@ export function MorePanel() {
       <div className={styles.panelScroll}>
         <div className={styles.morePanelInner}>
 
-          {/* ── 색상 테마 ── */}
           <div className={styles.moreSection}>
             <p className={styles.moreSectionTitle}>색상 테마</p>
             <div className={styles.themeGrid}>
@@ -50,7 +49,6 @@ export function MorePanel() {
 
           <div className={styles.moreDivider} />
 
-          {/* ── 입력창 크기 ── */}
           <div className={styles.moreSection}>
             <p className={styles.moreSectionTitle}>메시지 입력창 크기</p>
             <div className={styles.sizeGrid}>
@@ -63,7 +61,7 @@ export function MorePanel() {
                 >
                   {opt.label}
                   <br />
-                  <span style={{ fontSize: '0.625rem', opacity: 0.65 }}>{opt.desc}</span>
+                  <span className={styles.sizeBtnDesc}>{opt.desc}</span>
                 </button>
               ))}
             </div>
@@ -71,10 +69,9 @@ export function MorePanel() {
 
           <div className={styles.moreDivider} />
 
-          {/* ── 입력창 드래그 안내 ── */}
           <div className={styles.moreSection}>
             <p className={styles.moreSectionTitle}>직접 조절</p>
-            <p style={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>
+            <p className={styles.moreHintText}>
               채팅 입력창 상단 핸들을 위아래로 드래그해서 크기를 조절할 수 있습니다.
             </p>
           </div>

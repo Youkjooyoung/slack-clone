@@ -38,7 +38,6 @@ function getStoredAuth(): { accessToken?: string; refreshToken?: string } | null
 }
 
 function updateStoredTokens(accessToken: string, refreshToken: string) {
-  // 쿠키 업데이트
   if (typeof document !== 'undefined') {
     const match = document.cookie.match(/(?:^|; )auth-storage=([^;]*)/)
     if (match) {
@@ -53,7 +52,6 @@ function updateStoredTokens(accessToken: string, refreshToken: string) {
       }
     }
   }
-  // Zustand 스토어도 동기화 (useFileUpload 등 스토어를 직접 읽는 훅을 위해)
   const { user, setAuth } = useAuthStore.getState()
   if (user) setAuth(user, accessToken, refreshToken)
 }
@@ -154,8 +152,6 @@ export const authApi = {
     api.post<ApiResponse<null>>('/api/auth/logout'),
 }
 
-// ─── User ────────────────────────────────────────────────────────────────────
-
 export const userApi = {
   getMe: () => api.get<ApiResponse<import('@/types').UserProfile>>('/api/users/me'),
 
@@ -166,8 +162,6 @@ export const userApi = {
     statusEmoji?: string
   }) => api.patch<ApiResponse<import('@/types').UserProfile>>('/api/users/me', payload),
 }
-
-// ─── Workspace ───────────────────────────────────────────────────────────────
 
 export const workspaceApi = {
   create: (payload: { name: string; slug: string; description?: string; iconUrl?: string }) =>
@@ -199,8 +193,6 @@ export const workspaceApi = {
   removeMember: (workspaceId: string, userId: string) =>
     api.delete<ApiResponse<null>>(`/api/workspaces/${workspaceId}/members/${userId}`),
 }
-
-// ─── Channel ─────────────────────────────────────────────────────────────────
 
 export const channelApi = {
   create: (
@@ -249,10 +241,6 @@ export const channelApi = {
     ),
 }
 
-// ─── Message ─────────────────────────────────────────────────────────────────
-
-// ─── File ────────────────────────────────────────────────────────────────────
-
 export const fileApi = {
   requestUpload: (payload: { fileName: string; mimeType: string; fileSize: number }) =>
     api.post<ApiResponse<import('@/types').Attachment>>('/api/files/upload', payload),
@@ -260,8 +248,6 @@ export const fileApi = {
   getMyFiles: () =>
     api.get<ApiResponse<import('@/types').FileItem[]>>('/api/files/my'),
 }
-
-// ─── Message ─────────────────────────────────────────────────────────────────
 
 export const messageApi = {
   getMessages: (workspaceId: string, channelId: string, cursor?: string) =>

@@ -70,7 +70,6 @@ export default function Home() {
 
   return (
     <div className={styles.page}>
-      {/* ── Navbar ── */}
       <nav className={styles.nav}>
         <Link href="/" className={styles.navLogo}>
           <div className={styles.navLogoIcon}>T</div>
@@ -88,7 +87,6 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* ── Hero ── */}
       <section className={styles.hero}>
         <div className={styles.heroEyebrow}>
           ✨ 새로운 협업의 시작
@@ -115,27 +113,23 @@ export default function Home() {
           </Link>
         </div>
 
-        {/* Mock UI */}
         <div className={styles.heroPreview}>
           <div className={styles.heroPreviewInner}>
-            {/* Title bar */}
             <div className={styles.previewBar}>
-              <div className={styles.previewDot} style={{ background: '#ff5f57' }} />
-              <div className={styles.previewDot} style={{ background: '#febc2e' }} />
-              <div className={styles.previewDot} style={{ background: '#28c840' }} />
+              <div className={`${styles.previewDot} ${styles.previewDotRed}`} />
+              <div className={`${styles.previewDot} ${styles.previewDotYellow}`} />
+              <div className={`${styles.previewDot} ${styles.previewDotGreen}`} />
               <span className={styles.previewBarTitle}>투톡 — 테스트 워크스페이스</span>
             </div>
 
             <div className={styles.previewBody}>
-              {/* Icon Rail */}
               <div className={styles.previewIconRail}>
-                <div className={`${styles.previewRailIcon}`} style={{ background: 'linear-gradient(135deg, #03C75A 0%, #02b876 100%)', boxShadow: '0 2px 8px rgba(3, 199, 90, 0.3)', color: '#fff', fontWeight: 800, fontSize: '0.75rem' }}>T</div>
+                <div className={`${styles.previewRailIcon} ${styles.previewRailIconBrand}`}>T</div>
                 {['🏠', '💬', '🔔', '📁'].map((icon, i) => (
                   <div key={i} className={`${styles.previewRailIcon} ${i === 1 ? styles.previewRailIconActive : ''}`}>{icon}</div>
                 ))}
               </div>
 
-              {/* Sidebar */}
               <div className={styles.previewSidebar}>
                 <div className={styles.previewSidebarHeader}>테스트 워크스페이스</div>
 
@@ -163,14 +157,13 @@ export default function Home() {
                     { name: '최지우', online: true },
                   ].map((dm) => (
                     <div key={dm.name} className={styles.previewSidebarItem}>
-                      <span className={styles.previewOnlineDot} style={{ background: dm.online ? '#2bac76' : '#97979b' }} />
+                      <span className={`${styles.previewOnlineDot} ${dm.online ? styles.previewOnlineDotOnline : styles.previewOnlineDotOffline}`} />
                       {dm.name}
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Main Chat */}
               <div className={styles.previewMain}>
                 <div className={styles.previewMainHeader}>
                   <span className={styles.previewMainHeaderHash}>#</span>
@@ -185,7 +178,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Stats ── */}
       <section className={styles.stats}>
         {[
           { number: '실시간', label: 'WebSocket 메시지 전송' },
@@ -200,7 +192,6 @@ export default function Home() {
         ))}
       </section>
 
-      {/* ── Features ── */}
       <section className={styles.features}>
         <p className={styles.sectionEyebrow}>핵심 기능</p>
         <h2 className={styles.sectionTitle}>
@@ -223,7 +214,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── How it works ── */}
       <section className={styles.howItWorks}>
         <p className={styles.sectionEyebrow}>시작 방법</p>
         <h2 className={styles.sectionTitle}>4단계로 바로 시작</h2>
@@ -234,13 +224,12 @@ export default function Home() {
             <div key={i} className={styles.step}>
               <div className={styles.stepNumber}>{i + 1}</div>
               <div className={styles.stepTitle}>{s.title}</div>
-              <div className={styles.stepDesc} style={{ whiteSpace: 'pre-line' }}>{s.desc}</div>
+              <div className={`${styles.stepDesc} ${styles.stepDescPreLine}`}>{s.desc}</div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ── CTA ── */}
       <section className={styles.ctaSection}>
         <h2 className={styles.ctaTitle}>
           지금 바로 팀과 함께<br />시작해보세요
@@ -258,7 +247,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Footer ── */}
       <footer className={styles.footer}>
         <Link href="/" className={styles.footerLogo}>
           <span className={styles.footerLogoMark}>T</span>

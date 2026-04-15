@@ -41,7 +41,6 @@ export function FileUploadDropzone({ children, onFilesChange, inputId = 'file-up
     [upload, uploadedFiles, onFilesChange]
   )
 
-  // 드래그 이벤트
   const onDragEnter = (e: DragEvent) => {
     e.preventDefault()
     dragCounter.current++
@@ -71,7 +70,6 @@ export function FileUploadDropzone({ children, onFilesChange, inputId = 'file-up
     onFilesChange(next)
   }
 
-  // 외부(ChatArea)에서 파일 인풋 클릭 시 호출
   ;(FileUploadDropzone as { triggerInput?: () => void }).triggerInput = () => {
     document.getElementById('file-upload-input')?.click()
   }
@@ -90,17 +88,15 @@ export function FileUploadDropzone({ children, onFilesChange, inputId = 'file-up
         </div>
       )}
 
-      {/* 숨겨진 파일 인풋 */}
       <input
         id={inputId}
         type="file"
-        style={{ display: 'none' }}
+        className={styles.hiddenInput}
         multiple
         accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         onChange={(e) => e.target.files && handleFiles(e.target.files)}
       />
 
-      {/* 미리보기 목록 */}
       {uploadedFiles.length > 0 && (
         <div className={styles.previewList}>
           {uploadedFiles.map((uf) => (
@@ -131,14 +127,12 @@ export function FileUploadDropzone({ children, onFilesChange, inputId = 'file-up
         </div>
       )}
 
-      {/* 진행률 바 */}
       {isUploading && (
         <div className={styles.progressBar}>
           <div className={styles.progressFill} style={{ width: `${progress}%` }} />
         </div>
       )}
 
-      {/* 에러 */}
       {error && <p className={styles.errorMsg}>{error}</p>}
 
       {children}

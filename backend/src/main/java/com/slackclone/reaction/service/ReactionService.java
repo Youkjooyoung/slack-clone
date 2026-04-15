@@ -54,6 +54,12 @@ public class ReactionService {
         return response;
     }
 
+    @Transactional(readOnly = true)
+    public List<ReactionResponse> getMessageReactions(UUID messageId) {
+        return reactionRepository.findAllByMessageId(messageId)
+                .stream().map(ReactionResponse::from).toList();
+    }
+
     @Transactional
     public void removeFromMessage(UUID messageId, String emoji) {
         User user = securityUtil.getCurrentUser();
@@ -61,20 +67,11 @@ public class ReactionService {
                 .findByMessageIdAndUserIdAndEmoji(messageId, user.getId(), emoji)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REACTION_NOT_FOUND));
 
-        Message message = messageRepository.findById(messageId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.MESSAGE_NOT_FOUND));
-
         reaction.softDelete();
 
         messagingTemplate.convertAndSend(
-                "/topic/channel/" + message.getChannel().getId() + "/reactions/remove",
+                "/topic/channel/" + reaction.getMessage().getChannel().getId() + "/reactions/remove",
                 ReactionResponse.from(reaction));
-    }
-
-    @Transactional(readOnly = true)
-    public List<ReactionResponse> getMessageReactions(UUID messageId) {
-        return reactionRepository.findAllByMessageId(messageId)
-                .stream().map(ReactionResponse::from).toList();
     }
 
     @Transactional
@@ -95,13 +92,9 @@ public class ReactionService {
         reactionRepository.save(reaction);
 
         ReactionResponse response = ReactionResponse.from(reaction);
-
-        String pair = dm.getSender().getId().compareTo(dm.getReceiver().getId()) < 0
-                ? dm.getSender().getId() + "_" + dm.getReceiver().getId()
-                : dm.getReceiver().getId() + "_" + dm.getSender().getId();
-
         messagingTemplate.convertAndSend(
-                "/topic/dm/" + dm.getWorkspace().getId() + "/" + pair + "/reactions", response);
+                dmTopic(dm.getWorkspace().getId(), dm.getSender().getId(), dm.getReceiver().getId()) + "/reactions",
+                response);
 
         return response;
     }
@@ -122,12 +115,15 @@ public class ReactionService {
 
         reaction.softDelete();
 
-        String pair = dm.getSender().getId().compareTo(dm.getReceiver().getId()) < 0
-                ? dm.getSender().getId() + "_" + dm.getReceiver().getId()
-                : dm.getReceiver().getId() + "_" + dm.getSender().getId();
-
         messagingTemplate.convertAndSend(
-                "/topic/dm/" + dm.getWorkspace().getId() + "/" + pair + "/reactions/remove",
+                dmTopic(dm.getWorkspace().getId(), dm.getSender().getId(), dm.getReceiver().getId()) + "/reactions/remove",
                 ReactionResponse.from(reaction));
+    }
+
+    private static String dmTopic(UUID workspaceId, UUID uid1, UUID uid2) {
+        String a = uid1.toString();
+        String b = uid2.toString();
+        String pair = a.compareTo(b) < 0 ? a + "_" + b : b + "_" + a;
+        return "/topic/dm/" + workspaceId + "/" + pair;
     }
 }

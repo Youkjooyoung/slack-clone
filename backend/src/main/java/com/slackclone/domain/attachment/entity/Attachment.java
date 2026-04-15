@@ -17,7 +17,6 @@ import org.hibernate.annotations.SQLRestriction;
 @AllArgsConstructor
 public class Attachment extends BaseEntity {
 
-    // message_id, direct_message_id 중 하나만 non-NULL (DB CHECK 제약 보장)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "message_id")
     private Message message;

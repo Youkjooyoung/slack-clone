@@ -826,3 +826,20 @@
 }
 
 .footerLink:hover { color: #fff; }
+
+.previewDotRed { background: #ff5f57; }
+.previewDotYellow { background: #febc2e; }
+.previewDotGreen { background: #28c840; }
+
+.previewRailIconBrand {
+  background: linear-gradient(135deg, #03C75A 0%, #02b876 100%);
+  box-shadow: 0 2px 8px rgba(3, 199, 90, 0.3);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.75rem;
+}
+
+.previewOnlineDotOnline { background: #2bac76; }
+.previewOnlineDotOffline { background: #97979b; }
+
+.stepDescPreLine { white-space: pre-line; }

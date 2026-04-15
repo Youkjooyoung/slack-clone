@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { Client, type IMessage, type IFrame } from '@stomp/stompjs'
+import { Client, type IMessage } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/store/authStore'
@@ -32,8 +32,7 @@ export function useNotifications() {
         new SockJS(`${WS_URL}/ws?token=${accessToken}`),
       connectHeaders: { Authorization: `Bearer ${accessToken}` },
       reconnectDelay: 10_000,
-      onConnect: (_frame: IFrame) => {
-        // 멘션/알림
+      onConnect: () => {
         client.subscribe('/user/queue/notifications', (msg: IMessage) => {
           const notification = JSON.parse(msg.body) as AppNotification
           addNotification(notification)
@@ -43,7 +42,6 @@ export function useNotifications() {
           })
         })
 
-        // 채널·DM unread 실시간 이벤트
         client.subscribe('/user/queue/unread', (msg: IMessage) => {
           const event = JSON.parse(msg.body) as UnreadEvent
           if (event.type === 'CHANNEL' && event.channelId) {
@@ -53,9 +51,7 @@ export function useNotifications() {
           }
         })
       },
-      onStompError: (_frame: IFrame) => {
-        console.error('Notification STOMP error')
-      },
+      onStompError: () => {},
     })
 
     client.activate()

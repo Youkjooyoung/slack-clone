@@ -76,45 +76,10 @@ public class WorkspaceService {
         return WorkspaceResponse.of(workspace, WorkspaceRole.OWNER);
     }
 
-    @Transactional(readOnly = true)
-    public List<WorkspaceResponse> getMyWorkspaces() {
-        User currentUser = securityUtil.getCurrentUser();
-        return workspaceMemberRepository.findAllByUserIdWithWorkspace(currentUser.getId())
-                .stream()
-                .map(m -> WorkspaceResponse.of(m.getWorkspace(), m.getRole()))
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public WorkspaceResponse getOne(UUID workspaceId) {
-        User currentUser = securityUtil.getCurrentUser();
-        Workspace workspace = findWorkspaceOrThrow(workspaceId);
-        WorkspaceMember member = findMemberOrThrow(workspaceId, currentUser.getId());
-        return WorkspaceResponse.of(workspace, member.getRole());
-    }
-
-    @Transactional
-    public WorkspaceResponse update(UUID workspaceId, UpdateWorkspaceRequest request) {
-        User currentUser = securityUtil.getCurrentUser();
-        Workspace workspace = findWorkspaceOrThrow(workspaceId);
-        requireAdminOrAbove(workspaceId, currentUser.getId());
-
-        workspace.updateInfo(request.name(), request.description(), request.iconUrl());
-        return WorkspaceResponse.of(workspace, getMemberRole(workspaceId, currentUser.getId()));
-    }
-
-    @Transactional
-    public void delete(UUID workspaceId) {
-        User currentUser = securityUtil.getCurrentUser();
-        Workspace workspace = findWorkspaceOrThrow(workspaceId);
-        requireOwner(workspace, currentUser);
-        workspace.softDelete();
-    }
-
     @Transactional
     public WorkspaceMemberResponse invite(UUID workspaceId, InviteMemberRequest request) {
         User currentUser = securityUtil.getCurrentUser();
-        findWorkspaceOrThrow(workspaceId);
+        Workspace workspace = findWorkspaceOrThrow(workspaceId);
         requireAdminOrAbove(workspaceId, currentUser.getId());
 
         User invitee = userRepository.findByEmail(request.email())
@@ -124,7 +89,6 @@ public class WorkspaceService {
             throw new BusinessException(ErrorCode.WORKSPACE_ALREADY_MEMBER);
         }
 
-        Workspace workspace = findWorkspaceOrThrow(workspaceId);
         WorkspaceMember newMember = WorkspaceMember.builder()
                 .workspace(workspace)
                 .user(invitee)
@@ -149,6 +113,23 @@ public class WorkspaceService {
     }
 
     @Transactional(readOnly = true)
+    public List<WorkspaceResponse> getMyWorkspaces() {
+        User currentUser = securityUtil.getCurrentUser();
+        return workspaceMemberRepository.findAllByUserIdWithWorkspace(currentUser.getId())
+                .stream()
+                .map(m -> WorkspaceResponse.of(m.getWorkspace(), m.getRole()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public WorkspaceResponse getOne(UUID workspaceId) {
+        User currentUser = securityUtil.getCurrentUser();
+        Workspace workspace = findWorkspaceOrThrow(workspaceId);
+        WorkspaceMember member = findMemberOrThrow(workspaceId, currentUser.getId());
+        return WorkspaceResponse.of(workspace, member.getRole());
+    }
+
+    @Transactional(readOnly = true)
     public List<WorkspaceMemberResponse> getMembers(UUID workspaceId) {
         User currentUser = securityUtil.getCurrentUser();
         findMemberOrThrow(workspaceId, currentUser.getId());
@@ -156,6 +137,24 @@ public class WorkspaceService {
                 .stream()
                 .map(WorkspaceMemberResponse::from)
                 .toList();
+    }
+
+    @Transactional
+    public WorkspaceResponse update(UUID workspaceId, UpdateWorkspaceRequest request) {
+        User currentUser = securityUtil.getCurrentUser();
+        Workspace workspace = findWorkspaceOrThrow(workspaceId);
+        requireAdminOrAbove(workspaceId, currentUser.getId());
+
+        workspace.updateInfo(request.name(), request.description(), request.iconUrl());
+        return WorkspaceResponse.of(workspace, getMemberRole(workspaceId, currentUser.getId()));
+    }
+
+    @Transactional
+    public void delete(UUID workspaceId) {
+        User currentUser = securityUtil.getCurrentUser();
+        Workspace workspace = findWorkspaceOrThrow(workspaceId);
+        requireOwner(workspace, currentUser);
+        workspace.softDelete();
     }
 
     @Transactional

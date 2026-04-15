@@ -14,6 +14,9 @@ public class OgService {
             "Mozilla/5.0 (compatible; SlackCloneBot/1.0; +https://github.com/slackclone)";
 
     public OgMetaResponse fetchOgMeta(String url) {
+        if (url == null || (!url.startsWith("http://") && !url.startsWith("https://"))) {
+            return null;
+        }
         try {
             Document doc = Jsoup.connect(url)
                     .userAgent(USER_AGENT)
@@ -34,7 +37,6 @@ public class OgService {
 
             String imageUrl = metaContent(doc, "og:image");
 
-            // 제목도 없으면 미리보기 불필요
             if (title == null || title.isBlank()) {
                 return null;
             }
@@ -49,7 +51,6 @@ public class OgService {
         }
     }
 
-    /** og: 속성 또는 일반 name 속성 meta 태그에서 content 추출 */
     private String metaContent(Document doc, String property) {
         Element el = doc.selectFirst("meta[property=" + property + "]");
         if (el == null) {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useCallback } from 'react'
-import { Client, type IMessage, type IFrame } from '@stomp/stompjs'
+import { Client, type IMessage } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
 import { useAuthStore } from '@/store/authStore'
 import type { DmMessage, Reaction } from '@/types'
@@ -46,7 +46,6 @@ export function useDmWebSocket({
   useEffect(() => {
     if (!accessToken || !currentUserId) return
 
-    // 결정론적 토픽 경로 (서버와 동일 로직)
     const a = currentUserId
     const b = targetUserId
     const pair = a < b ? `${a}_${b}` : `${b}_${a}`
@@ -57,7 +56,7 @@ export function useDmWebSocket({
         new SockJS(`${WS_URL}/ws?token=${accessToken}`),
       connectHeaders: { Authorization: `Bearer ${accessToken}` },
       reconnectDelay: 5000,
-      onConnect: (_frame: IFrame) => {
+      onConnect: () => {
         client.subscribe(topic, (msg: IMessage) => {
           onMessage(JSON.parse(msg.body) as DmMessage)
         })
@@ -78,9 +77,7 @@ export function useDmWebSocket({
           })
         }
       },
-      onStompError: (_frame: IFrame) => {
-        console.error('DM STOMP 연결 오류')
-      },
+      onStompError: () => {},
     })
 
     client.activate()

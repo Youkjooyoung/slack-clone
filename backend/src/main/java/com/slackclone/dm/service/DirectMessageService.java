@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -61,15 +62,13 @@ public class DirectMessageService {
 
         DmResponse response = DmResponse.from(dm);
 
-        // 두 사람 모두에게 WebSocket 전송
         String topic = dmTopic(workspaceId, sender.getId(), receiverId);
         messagingTemplate.convertAndSend(topic, response);
 
-        // 수신자에게 unread DM 이벤트 발송
         messagingTemplate.convertAndSendToUser(
                 receiver.getEmail(),
                 "/queue/unread",
-                java.util.Map.of("type", "DM",
+                Map.of("type", "DM",
                         "fromUserId", sender.getId().toString(),
                         "workspaceId", workspaceId.toString()));
 
@@ -144,8 +143,7 @@ public class DirectMessageService {
         }
     }
 
-    /** 두 userId를 정렬해서 결정론적 토픽 경로 생성 */
-    public static String dmTopic(UUID workspaceId, UUID userId1, UUID userId2) {
+    private static String dmTopic(UUID workspaceId, UUID userId1, UUID userId2) {
         String a = userId1.toString();
         String b = userId2.toString();
         String pair = a.compareTo(b) < 0 ? a + "_" + b : b + "_" + a;
