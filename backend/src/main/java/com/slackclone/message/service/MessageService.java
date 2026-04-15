@@ -10,15 +10,15 @@ import com.slackclone.domain.channel.repository.ChannelMemberRepository;
 import com.slackclone.domain.channel.repository.ChannelRepository;
 import com.slackclone.domain.message.entity.Message;
 import com.slackclone.domain.message.repository.MessageRepository;
+import com.slackclone.domain.notification.entity.Notification;
+import com.slackclone.domain.notification.entity.NotificationType;
+import com.slackclone.domain.notification.repository.NotificationRepository;
 import com.slackclone.domain.user.entity.User;
 import com.slackclone.domain.user.repository.UserRepository;
 import com.slackclone.domain.workspace.repository.WorkspaceMemberRepository;
 import com.slackclone.message.dto.MessagePageResponse;
 import com.slackclone.message.dto.MessageResponse;
 import com.slackclone.message.dto.SendMessageRequest;
-import com.slackclone.domain.notification.entity.Notification;
-import com.slackclone.domain.notification.repository.NotificationRepository;
-import com.slackclone.domain.notification.entity.NotificationType;
 import com.slackclone.notification.dto.NotificationResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -86,22 +86,151 @@ public class MessageService {
                 .build();
         messageRepository.save(message);
 
-        // @멘션 파싱 및 실시간 알림 전송 처리
         processMentions(channelId, message);
 
         MessageResponse response = MessageResponse.from(message);
         messagingTemplate.convertAndSend("/topic/channel/" + channelId, response);
 
-        // 채널 멤버(발신자 제외)에게 unread 이벤트 발송
         notifyChannelUnread(channelId, workspaceId, sender.getId());
-
-        // @멘션 파싱 및 실시간 알림 전송 처리
-        processMentions(channelId, message);
 
         return response;
     }
 
-    /** 채널 메시지 수신 시 멤버별 unread 카운트 실시간 알림 */
+    @Transactional
+    public MessagePageResponse getMessages(UUID workspaceId, UUID channelId,
+                                           String cursorStr, String senderEmail) {
+        User user = securityUtil.getCurrentUser();
+
+        if (!workspaceMemberRepository.existsByWorkspaceIdAndUserId(workspaceId, user.getId())) {
+            throw new BusinessException(ErrorCode.WORKSPACE_ACCESS_DENIED);
+        }
+        if (!channelMemberRepository.existsByChannelIdAndUserId(channelId, user.getId())) {
+            Channel channel = channelRepository.findById(channelId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.CHANNEL_NOT_FOUND));
+            if (channel.isPrivate() || !channel.getWorkspace().getId().equals(workspaceId)) {
+                throw new BusinessException(ErrorCode.CHANNEL_ACCESS_DENIED);
+            }
+            channelMemberRepository.save(ChannelMember.builder()
+                    .channel(channel)
+                    .user(user)
+                    .role(ChannelRole.MEMBER)
+                    .build());
+        }
+
+        OffsetDateTime cursor = cursorStr != null ? OffsetDateTime.parse(cursorStr) : null;
+        List<Message> messages = messageRepository.findByChannelIdBeforeCursor(
+                channelId, cursor, PAGE_SIZE + 1);
+
+        boolean hasMore = messages.size() > PAGE_SIZE;
+        if (hasMore) messages = messages.subList(0, PAGE_SIZE);
+
+        String nextCursor = hasMore ? messages.get(messages.size() - 1)
+                .getCreatedAt().toString() : null;
+
+        List<UUID> messageIds = messages.stream().map(Message::getId).toList();
+        Map<UUID, Integer> replyCounts = new HashMap<>();
+        if (!messageIds.isEmpty()) {
+            messageRepository.countRepliesByParentIds(messageIds).forEach(row ->
+                    replyCounts.put((UUID) row[0], ((Long) row[1]).intValue()));
+        }
+
+        return new MessagePageResponse(
+                messages.stream()
+                        .map(m -> MessageResponse.from(m, replyCounts.getOrDefault(m.getId(), 0)))
+                        .toList(),
+                hasMore,
+                nextCursor
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public List<MessageResponse> searchMessages(UUID workspaceId, UUID channelId, String keyword) {
+        User user = securityUtil.getCurrentUser();
+        if (!workspaceMemberRepository.existsByWorkspaceIdAndUserId(workspaceId, user.getId())) {
+            throw new BusinessException(ErrorCode.WORKSPACE_ACCESS_DENIED);
+        }
+        if (!channelMemberRepository.existsByChannelIdAndUserId(channelId, user.getId())) {
+            throw new BusinessException(ErrorCode.CHANNEL_ACCESS_DENIED);
+        }
+        return messageRepository.searchByChannelIdAndKeyword(channelId, keyword, 50)
+                .stream().map(MessageResponse::from).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<MessageResponse> getReplies(UUID messageId) {
+        User user = securityUtil.getCurrentUser();
+        Message parent = messageRepository.findById(messageId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.MESSAGE_NOT_FOUND));
+
+        if (!workspaceMemberRepository.existsByWorkspaceIdAndUserId(
+                parent.getChannel().getWorkspace().getId(), user.getId())) {
+            throw new BusinessException(ErrorCode.WORKSPACE_ACCESS_DENIED);
+        }
+
+        return messageRepository.findRepliesByParentId(messageId)
+                .stream().map(MessageResponse::from).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Long> getUnreadCounts(UUID workspaceId) {
+        User user = securityUtil.getCurrentUser();
+        List<ChannelMember> memberships =
+                channelMemberRepository.findAllByUserIdAndWorkspaceId(user.getId(), workspaceId);
+
+        Map<String, Long> result = new HashMap<>();
+        for (ChannelMember membership : memberships) {
+            UUID channelId = membership.getChannel().getId();
+            String key = READ_KEY_PREFIX + channelId + ":" + user.getId();
+            Object lastRead = redisTemplate.opsForValue().get(key);
+            if (lastRead == null) continue;
+
+            OffsetDateTime since = OffsetDateTime.parse(lastRead.toString());
+            long count = messageRepository.countUnreadMessages(channelId, since, user.getId());
+            if (count > 0) result.put(channelId.toString(), count);
+        }
+        return result;
+    }
+
+    @Transactional
+    public MessageResponse editMessage(UUID messageId, String content) {
+        User user = securityUtil.getCurrentUser();
+        Message message = messageRepository.findById(messageId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.MESSAGE_NOT_FOUND));
+
+        if (!message.getSender().getId().equals(user.getId())) {
+            throw new BusinessException(ErrorCode.MESSAGE_ACCESS_DENIED);
+        }
+
+        message.editContent(content);
+        MessageResponse response = MessageResponse.from(message);
+        messagingTemplate.convertAndSend(
+                "/topic/channel/" + message.getChannel().getId() + "/update", response);
+        return response;
+    }
+
+    public void markAsRead(UUID channelId) {
+        User user = securityUtil.getCurrentUser();
+        String key = READ_KEY_PREFIX + channelId + ":" + user.getId();
+        redisTemplate.opsForValue().set(key, OffsetDateTime.now().toString(),
+                7, TimeUnit.DAYS);
+    }
+
+    @Transactional
+    public void deleteMessage(UUID messageId) {
+        User user = securityUtil.getCurrentUser();
+        Message message = messageRepository.findById(messageId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.MESSAGE_NOT_FOUND));
+
+        if (!message.getSender().getId().equals(user.getId())) {
+            throw new BusinessException(ErrorCode.MESSAGE_ACCESS_DENIED);
+        }
+
+        message.softDelete();
+        messagingTemplate.convertAndSend(
+                "/topic/channel/" + message.getChannel().getId() + "/delete",
+                messageId.toString());
+    }
+
     private void notifyChannelUnread(UUID channelId, UUID workspaceId, UUID senderId) {
         channelMemberRepository.findAllByChannelId(channelId).forEach(cm -> {
             User member = cm.getUser();
@@ -138,150 +267,17 @@ public class MessageService {
                 Notification notification = Notification.builder()
                         .user(targetUser)
                         .type(NotificationType.MENTION)
-                        .title("💬 멘션 알림")
+                        .title("멘션 알림")
                         .content(message.getSender().getUsername() + "님이 #" + message.getChannel().getName() + " 채널에서 멘션했습니다.")
                         .isRead(false)
                         .build();
 
                 notificationRepository.save(notification);
-                messagingTemplate.convertAndSendToUser(targetUser.getId().toString(), "/queue/notifications", NotificationResponse.from(notification));
+                messagingTemplate.convertAndSendToUser(
+                        targetUser.getId().toString(),
+                        "/queue/notifications",
+                        NotificationResponse.from(notification));
             }
         }
-    }
-
-    @Transactional
-    public MessagePageResponse getMessages(UUID workspaceId, UUID channelId,
-                                           String cursorStr, String senderEmail) {
-        User user = securityUtil.getCurrentUser();
-
-        if (!workspaceMemberRepository.existsByWorkspaceIdAndUserId(workspaceId, user.getId())) {
-            throw new BusinessException(ErrorCode.WORKSPACE_ACCESS_DENIED);
-        }
-        if (!channelMemberRepository.existsByChannelIdAndUserId(channelId, user.getId())) {
-            Channel channel = channelRepository.findById(channelId)
-                    .orElseThrow(() -> new BusinessException(ErrorCode.CHANNEL_NOT_FOUND));
-            if (channel.isPrivate() || !channel.getWorkspace().getId().equals(workspaceId)) {
-                throw new BusinessException(ErrorCode.CHANNEL_ACCESS_DENIED);
-            }
-            channelMemberRepository.save(ChannelMember.builder()
-                    .channel(channel)
-                    .user(user)
-                    .role(ChannelRole.MEMBER)
-                    .build());
-        }
-
-        OffsetDateTime cursor = cursorStr != null ? OffsetDateTime.parse(cursorStr) : null;
-        List<Message> messages = messageRepository.findByChannelIdBeforeCursor(
-                channelId, cursor, PAGE_SIZE + 1);
-
-        boolean hasMore = messages.size() > PAGE_SIZE;
-        if (hasMore) messages = messages.subList(0, PAGE_SIZE);
-
-        String nextCursor = hasMore ? messages.get(messages.size() - 1)
-                .getCreatedAt().toString() : null;
-
-        // 답글 수 배치 조회 (N+1 방지)
-        List<UUID> messageIds = messages.stream().map(Message::getId).toList();
-        Map<UUID, Integer> replyCounts = new HashMap<>();
-        if (!messageIds.isEmpty()) {
-            messageRepository.countRepliesByParentIds(messageIds).forEach(row ->
-                    replyCounts.put((UUID) row[0], ((Long) row[1]).intValue()));
-        }
-
-        return new MessagePageResponse(
-                messages.stream()
-                        .map(m -> MessageResponse.from(m, replyCounts.getOrDefault(m.getId(), 0)))
-                        .toList(),
-                hasMore,
-                nextCursor
-        );
-    }
-
-    @Transactional
-    public MessageResponse editMessage(UUID messageId, String content) {
-        User user = securityUtil.getCurrentUser();
-        Message message = messageRepository.findById(messageId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.MESSAGE_NOT_FOUND));
-
-        if (!message.getSender().getId().equals(user.getId())) {
-            throw new BusinessException(ErrorCode.MESSAGE_ACCESS_DENIED);
-        }
-
-        message.editContent(content);
-        MessageResponse response = MessageResponse.from(message);
-        messagingTemplate.convertAndSend(
-                "/topic/channel/" + message.getChannel().getId() + "/update", response);
-        return response;
-    }
-
-    @Transactional
-    public void deleteMessage(UUID messageId) {
-        User user = securityUtil.getCurrentUser();
-        Message message = messageRepository.findById(messageId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.MESSAGE_NOT_FOUND));
-
-        if (!message.getSender().getId().equals(user.getId())) {
-            throw new BusinessException(ErrorCode.MESSAGE_ACCESS_DENIED);
-        }
-
-        message.softDelete();
-        messagingTemplate.convertAndSend(
-                "/topic/channel/" + message.getChannel().getId() + "/delete",
-                messageId.toString());
-    }
-
-    @Transactional(readOnly = true)
-    public List<MessageResponse> searchMessages(UUID workspaceId, UUID channelId, String keyword) {
-        User user = securityUtil.getCurrentUser();
-        if (!workspaceMemberRepository.existsByWorkspaceIdAndUserId(workspaceId, user.getId())) {
-            throw new BusinessException(ErrorCode.WORKSPACE_ACCESS_DENIED);
-        }
-        if (!channelMemberRepository.existsByChannelIdAndUserId(channelId, user.getId())) {
-            throw new BusinessException(ErrorCode.CHANNEL_ACCESS_DENIED);
-        }
-        return messageRepository.searchByChannelIdAndKeyword(channelId, keyword, 50)
-                .stream().map(MessageResponse::from).toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<MessageResponse> getReplies(UUID messageId) {
-        User user = securityUtil.getCurrentUser();
-        Message parent = messageRepository.findById(messageId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.MESSAGE_NOT_FOUND));
-
-        if (!workspaceMemberRepository.existsByWorkspaceIdAndUserId(
-                parent.getChannel().getWorkspace().getId(), user.getId())) {
-            throw new BusinessException(ErrorCode.WORKSPACE_ACCESS_DENIED);
-        }
-
-        return messageRepository.findRepliesByParentId(messageId)
-                .stream().map(MessageResponse::from).toList();
-    }
-
-    public void markAsRead(UUID channelId) {
-        User user = securityUtil.getCurrentUser();
-        String key = READ_KEY_PREFIX + channelId + ":" + user.getId();
-        redisTemplate.opsForValue().set(key, OffsetDateTime.now().toString(),
-                7, TimeUnit.DAYS);
-    }
-
-    @Transactional(readOnly = true)
-    public Map<String, Long> getUnreadCounts(UUID workspaceId) {
-        User user = securityUtil.getCurrentUser();
-        List<ChannelMember> memberships =
-                channelMemberRepository.findAllByUserIdAndWorkspaceId(user.getId(), workspaceId);
-
-        Map<String, Long> result = new HashMap<>();
-        for (ChannelMember membership : memberships) {
-            UUID channelId = membership.getChannel().getId();
-            String key = READ_KEY_PREFIX + channelId + ":" + user.getId();
-            Object lastRead = redisTemplate.opsForValue().get(key);
-            if (lastRead == null) continue; // 한 번도 열지 않은 채널은 0으로 처리
-
-            OffsetDateTime since = OffsetDateTime.parse(lastRead.toString());
-            long count = messageRepository.countUnreadMessages(channelId, since, user.getId());
-            if (count > 0) result.put(channelId.toString(), count);
-        }
-        return result;
     }
 }

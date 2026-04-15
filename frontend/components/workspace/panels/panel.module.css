@@ -347,3 +347,22 @@
   background: rgba(255, 255, 255, 0.08);
   margin: 0.75rem 1rem;
 }
+
+.onlineDotOnline {
+  background-color: #2bac76;
+}
+
+.onlineDotOffline {
+  background-color: #97979b;
+}
+
+.sizeBtnDesc {
+  font-size: 0.625rem;
+  opacity: 0.65;
+}
+
+.moreHintText {
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.5;
+}

@@ -24,7 +24,6 @@ public class Message extends BaseEntity {
     @JoinColumn(name = "sender_id", nullable = false)
     private User sender;
 
-    // NULL이면 일반 메시지, non-NULL이면 스레드 답글
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
     private Message parent;

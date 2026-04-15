@@ -25,8 +25,6 @@ public class MessageController {
 
     private final MessageService messageService;
 
-    // ─── REST: 메시지 페이징 조회 ─────────────────────────────────────────────
-
     @GetMapping("/api/workspaces/{workspaceId}/channels/{channelId}/messages")
     public ResponseEntity<ApiResponse<MessagePageResponse>> getMessages(
             @PathVariable UUID workspaceId,
@@ -77,8 +75,6 @@ public class MessageController {
             @PathVariable UUID workspaceId) {
         return ResponseEntity.ok(ApiResponse.success(messageService.getUnreadCounts(workspaceId)));
     }
-
-    // ─── STOMP: 채널 메시지 전송 ──────────────────────────────────────────────
 
     @MessageMapping("/channel/{workspaceId}/{channelId}/send")
     public void sendMessage(

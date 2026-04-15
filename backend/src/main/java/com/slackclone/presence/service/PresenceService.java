@@ -1,6 +1,5 @@
 package com.slackclone.presence.service;
 
-import com.slackclone.domain.user.entity.User;
 import com.slackclone.domain.user.repository.UserRepository;
 import com.slackclone.domain.workspace.repository.WorkspaceMemberRepository;
 import lombok.RequiredArgsConstructor;
@@ -53,14 +52,13 @@ public class PresenceService {
                 .collect(Collectors.toSet());
     }
 
-    /** 유저 이메일로 소속 워크스페이스 ID 목록 + 유저 ID 조회 */
     public Optional<BroadcastInfo> getBroadcastInfo(String email) {
         return userRepository.findByEmail(email).map(user -> {
             List<UUID> workspaceIds = workspaceMemberRepository
                     .findAllByUserIdWithWorkspace(user.getId())
                     .stream()
                     .map(wm -> wm.getWorkspace().getId())
-                    .collect(Collectors.toList());
+                    .toList();
             return new BroadcastInfo(user.getId(), workspaceIds);
         });
     }

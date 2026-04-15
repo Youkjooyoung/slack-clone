@@ -32,7 +32,6 @@ public class Notification extends BaseEntity {
     @Column(name = "content", columnDefinition = "TEXT")
     private String content;
 
-    // 연관 리소스 ID (MESSAGE, DIRECT_MESSAGE, CHANNEL 등 — polymorphic)
     @Column(name = "reference_id")
     private UUID referenceId;
 

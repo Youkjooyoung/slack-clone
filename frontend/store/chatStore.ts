@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import type { ChatMessage } from '@/types'
 
 interface ChatState {
-  messages: Record<string, ChatMessage[]>  // channelId → messages (newest first)
+  messages: Record<string, ChatMessage[]>
   addMessage: (channelId: string, message: ChatMessage) => void
   setMessages: (channelId: string, messages: ChatMessage[]) => void
   prependMessages: (channelId: string, messages: ChatMessage[]) => void

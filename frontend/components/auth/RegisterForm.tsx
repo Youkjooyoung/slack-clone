@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 
-import { authApi, userApi, type ApiResponse, type TokenResponse } from '@/lib/api'
+import { authApi, userApi, type ApiResponse } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import styles from './auth.module.css'
 
@@ -83,7 +83,7 @@ export function RegisterForm() {
 
   return (
     <div className={styles.container}>
-      <div style={{ width: '100%', maxWidth: '432px', position: 'relative', zIndex: 1 }}>
+      <div className={styles.formWrapper}>
         <Card className={styles.card}>
           <CardHeader className={styles.headerGreen}>
             <div className={styles.logo}>

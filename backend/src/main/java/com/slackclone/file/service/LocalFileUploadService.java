@@ -12,6 +12,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,6 +47,25 @@ public class LocalFileUploadService {
 
     @Value("${local.upload.base-url:http://localhost:8080}")
     private String baseUrl;
+
+    public ResponseEntity<Resource> serveLocalFile(String userId, String fileName) {
+        try {
+            Path filePath = Paths.get(uploadDir, userId, fileName);
+            Resource resource = new UrlResource(filePath.toUri());
+            if (!resource.exists()) return ResponseEntity.notFound().build();
+
+            String contentType = fileName.matches(".*\\.(png|jpg|jpeg|gif|webp)$")
+                    ? "image/" + fileName.replaceAll(".*\\.", "").replace("jpg", "jpeg")
+                    : MediaType.APPLICATION_OCTET_STREAM_VALUE;
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileName + "\"")
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .body(resource);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
 
     @Transactional
     public FileUploadResponse uploadLocal(MultipartFile file, User uploader) {

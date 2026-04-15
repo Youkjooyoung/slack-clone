@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useEffect, useCallback, useState, KeyboardEvent, useMemo } from 'react'
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
 import { dmApi, reactionApi, workspaceApi } from '@/lib/api'
 import { useDmWebSocket } from '@/hooks/useDmWebSocket'
@@ -35,7 +35,6 @@ function isSameDay(a: string, b: string) {
 
 const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮']
 const EMOJI_PALETTE = ['😀','😂','🥲','😍','🤩','😎','🤔','😢','😡','🥳','👍','👎','👏','🙌','❤️','🔥','⭐','💯','✅','🎉','🚀','💬','📌','📎']
-
 const GROUP_THRESHOLD_MS = 5 * 60 * 1000
 
 function htmlToMarkdown(html: string): string {
@@ -89,7 +88,6 @@ function stripImageUrls(content: string): string {
 }
 
 function renderMarkdown(text: string): string {
-  // URL을 플레이스홀더로 보호 (언더스코어 등이 마크다운으로 변환되지 않도록)
   const urls: string[] = []
   let processed = text.replace(/https?:\/\/\S+/g, (match) => {
     urls.push(match)
@@ -108,7 +106,6 @@ function renderMarkdown(text: string): string {
     .replace(/`(.+?)`/g, '<code>$1</code>')
     .replace(/\n/g, '<br/>')
 
-  // URL 복원 (클릭 가능한 링크로 변환)
   processed = processed.replace(/__URL_PLACEHOLDER_(\d+)__/g, (_, idx) => {
     const url = urls[Number(idx)]
     const escaped = url.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -121,96 +118,31 @@ function renderMarkdown(text: string): string {
 function isGrouped(msg: DmMessage, prev: DmMessage | undefined): boolean {
   if (!prev) return false
   if (msg.senderId !== prev.senderId) return false
-  // column-reverse: msg(index i) 는 prev(index i+1) 보다 최신
   return new Date(msg.createdAt).getTime() - new Date(prev.createdAt).getTime() < GROUP_THRESHOLD_MS
 }
 
 export function DmArea({ workspaceId, targetUser }: DmAreaProps) {
   const { user } = useAuthStore()
-  const queryClient = useQueryClient()
   const isTargetOnline = usePresenceStore((s) => s.getOnlineSet(workspaceId).has(targetUser.id))
-  const editorRef = useRef<HTMLDivElement>(null)
-  const messageListRef = useRef<HTMLDivElement>(null)
-  const isAtBottomRef = useRef(true)
+
   const [localMessages, setLocalMessages] = useState<DmMessage[]>([])
   const [messageReactions, setMessageReactions] = useState<Record<string, Reaction[]>>({})
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
-  const editTextareaRef = useRef<HTMLTextAreaElement>(null)
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
-  const emojiPickerRef = useRef<HTMLDivElement>(null)
   const [attachedFiles, setAttachedFiles] = useState<UploadedFile[]>([])
-  const attachedFilesRef = useRef<UploadedFile[]>([])
   const [dropzoneKey, setDropzoneKey] = useState(0)
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null)
+  const [mentionIndex, setMentionIndex] = useState(0)
 
-  // Close emoji picker on outside click
-  useEffect(() => {
-    if (!emojiPickerOpen) return
-    function handleClickOutside(e: MouseEvent) {
-      if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target as Node)) {
-        setEmojiPickerOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [emojiPickerOpen])
-
-  const insertEmoji = useCallback((emoji: string) => {
-    const el = editorRef.current
-    if (!el) return
-    insertAtCursor(el, emoji)
-    setEmojiPickerOpen(false)
-  }, [])
+  const editorRef = useRef<HTMLDivElement>(null)
+  const messageListRef = useRef<HTMLDivElement>(null)
+  const isAtBottomRef = useRef(true)
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null)
+  const emojiPickerRef = useRef<HTMLDivElement>(null)
+  const attachedFilesRef = useRef<UploadedFile[]>([])
 
   const conversationKey = ['dm', workspaceId, targetUser.id]
-
-  const checkAtBottom = useCallback(() => {
-    const el = messageListRef.current
-    if (!el) return
-    isAtBottomRef.current = el.scrollTop >= -40
-  }, [])
-
-  const scrollToBottom = useCallback(() => {
-    const el = messageListRef.current
-    if (el) el.scrollTop = 0
-  }, [])
-
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
-    useInfiniteQuery({
-      queryKey: conversationKey,
-      queryFn: ({ pageParam }) =>
-        dmApi
-          .getMessages(workspaceId, targetUser.id, pageParam as string | undefined)
-          .then((r) => r.data.data),
-      initialPageParam: undefined as string | undefined,
-      getNextPageParam: (lastPage: DmPage) =>
-        lastPage.hasMore ? lastPage.nextCursor ?? undefined : undefined,
-    })
-
-  useEffect(() => {
-    if (!data) return
-    const all = data.pages.flatMap((p) => p.messages)
-    setLocalMessages(all)
-    scrollToBottom()
-  }, [data, scrollToBottom])
-
-  // DM 창 열면 해당 유저의 unread 즉시 초기화
-  useEffect(() => {
-    useUnreadStore.getState().clearDm(targetUser.id)
-  }, [targetUser.id])
-
-  const handleNewMessage = useCallback((msg: DmMessage) => {
-    setLocalMessages((prev) => [msg, ...prev])
-    if (isAtBottomRef.current) scrollToBottom()
-  }, [scrollToBottom])
-
-  const handleUpdate = useCallback((msg: DmMessage) => {
-    setLocalMessages((prev) => prev.map((m) => (m.id === msg.id ? msg : m)))
-  }, [])
-
-  const handleDelete = useCallback((dmId: string) => {
-    setLocalMessages((prev) => prev.filter((m) => m.id !== dmId))
-  }, [])
 
   const { mutate: toggleReaction } = useMutation({
     mutationFn: async ({ dmId, emoji }: { dmId: string; emoji: string }) => {
@@ -235,6 +167,56 @@ export function DmArea({ workspaceId, targetUser }: DmAreaProps) {
     },
     onError: () => toast.error('반응 처리에 실패했습니다.'),
   })
+
+  const { data: members = [] } = useQuery<WorkspaceMember[]>({
+    queryKey: ['workspace-members', workspaceId],
+    queryFn: () => workspaceApi.getMembers(workspaceId).then((r) => r.data.data),
+    staleTime: 60_000,
+  })
+
+  const filteredMembers = useMemo(() => {
+    if (mentionQuery === null) return []
+    const lq = mentionQuery.toLowerCase()
+    return members.filter((m) =>
+      m.username.toLowerCase().includes(lq) || (m.displayName?.toLowerCase() ?? '').includes(lq)
+    ).slice(0, 6)
+  }, [members, mentionQuery])
+
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
+    useInfiniteQuery({
+      queryKey: conversationKey,
+      queryFn: ({ pageParam }) =>
+        dmApi
+          .getMessages(workspaceId, targetUser.id, pageParam as string | undefined)
+          .then((r) => r.data.data),
+      initialPageParam: undefined as string | undefined,
+      getNextPageParam: (lastPage: DmPage) =>
+        lastPage.hasMore ? lastPage.nextCursor ?? undefined : undefined,
+    })
+
+  const checkAtBottom = useCallback(() => {
+    const el = messageListRef.current
+    if (!el) return
+    isAtBottomRef.current = el.scrollTop >= -40
+  }, [])
+
+  const scrollToBottom = useCallback(() => {
+    const el = messageListRef.current
+    if (el) el.scrollTop = 0
+  }, [])
+
+  const handleNewMessage = useCallback((msg: DmMessage) => {
+    setLocalMessages((prev) => [msg, ...prev])
+    if (isAtBottomRef.current) scrollToBottom()
+  }, [scrollToBottom])
+
+  const handleUpdate = useCallback((msg: DmMessage) => {
+    setLocalMessages((prev) => prev.map((m) => (m.id === msg.id ? msg : m)))
+  }, [])
+
+  const handleDelete = useCallback((dmId: string) => {
+    setLocalMessages((prev) => prev.filter((m) => m.id !== dmId))
+  }, [])
 
   const handleReactionAdd = useCallback((reaction: Reaction) => {
     if (!reaction.directMessageId) return
@@ -264,24 +246,12 @@ export function DmArea({ workspaceId, targetUser }: DmAreaProps) {
     onReactionRemove: handleReactionRemove,
   })
 
-  const [mentionQuery, setMentionQuery] = useState<string | null>(null)
-  const [mentionIndex, setMentionIndex] = useState(0)
-
-  const { data: members = [] } = useQuery<WorkspaceMember[]>({
-    queryKey: ['workspace-members', workspaceId],
-    queryFn: () => workspaceApi.getMembers(workspaceId).then((r) => r.data.data),
-    staleTime: 60_000,
-  })
-
-  const filteredMembers = useMemo(() => {
-    if (mentionQuery === null) return []
-    const lq = mentionQuery.toLowerCase()
-    return members.filter((m) =>
-      m.username.toLowerCase().includes(lq) || (m.displayName?.toLowerCase() ?? '').includes(lq)
-    ).slice(0, 6)
-  }, [members, mentionQuery])
-
-  useEffect(() => { setMentionIndex(0) }, [filteredMembers.length])
+  const insertEmoji = useCallback((emoji: string) => {
+    const el = editorRef.current
+    if (!el) return
+    insertAtCursor(el, emoji)
+    setEmojiPickerOpen(false)
+  }, [])
 
   const detectMention = useCallback(() => {
     const el = editorRef.current
@@ -540,26 +510,50 @@ export function DmArea({ workspaceId, targetUser }: DmAreaProps) {
     return result
   }, [localMessages, messageReactions, user?.id, editingId, editContent, handleEditStart, handleEditSubmit, handleEditKeyDown, handleDelete, toggleReaction])
 
+  useEffect(() => {
+    if (!emojiPickerOpen) return
+    function handleClickOutside(e: MouseEvent) {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target as Node)) {
+        setEmojiPickerOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [emojiPickerOpen])
+
+  useEffect(() => {
+    if (!data) return
+    const all = data.pages.flatMap((p) => p.messages)
+    setLocalMessages(all)
+    scrollToBottom()
+  }, [data, scrollToBottom])
+
+  useEffect(() => {
+    useUnreadStore.getState().clearDm(targetUser.id)
+  }, [targetUser.id])
+
+  useEffect(() => { setMentionIndex(0) }, [filteredMembers.length])
+
   const displayName = targetUser.displayName ?? targetUser.username
 
   return (
     <div className={styles.chatArea}>
       <div className={styles.header}>
-        <div style={{ position: 'relative', flexShrink: 0 }}>
-          <div className={styles.avatarFallback} style={{ width: 28, height: 28, fontSize: '0.8rem', borderRadius: '50%' }}>
+        <div className={styles.dmHeaderAvatarWrap}>
+          <div className={`${styles.avatarFallback} ${styles.dmHeaderAvatar}`}>
             {displayName.charAt(0).toUpperCase()}
           </div>
           <span
             className={isTargetOnline ? styles.presenceDotOnline : styles.presenceDotOffline}
           />
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div className={styles.dmHeaderInfo}>
           <span className={styles.headerName}>{displayName}</span>
-          <span style={{ fontSize: '0.6875rem', color: isTargetOnline ? '#2bac76' : '#97979b' }}>
+          <span className={`${styles.dmStatusText} ${isTargetOnline ? styles.dmStatusOnline : styles.dmStatusOffline}`}>
             {isTargetOnline ? '온라인' : '오프라인'}
           </span>
         </div>
-        <div style={{ flex: 1 }} />
+        <div className={styles.spacer} />
         <div className={styles.headerActionGroup}>
           <button className={styles.headerActionBtn} title="검색" onClick={() => {}}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -582,22 +576,22 @@ export function DmArea({ workspaceId, targetUser }: DmAreaProps) {
         )}
 
         {isLoading && (
-          <div style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>메시지를 불러오는 중...</div>
+          <div className={styles.dmLoadingMsg}>메시지를 불러오는 중...</div>
         )}
 
         {!isLoading && localMessages.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '3rem', color: '#616061' }}>
-            <p style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+          <div className={styles.dmEmpty}>
+            <p className={styles.dmEmptyTitle}>
               {displayName}과의 대화
             </p>
-            <p style={{ fontSize: '0.9375rem' }}>첫 메시지를 보내보세요.</p>
+            <p className={styles.dmEmptyMsg}>첫 메시지를 보내보세요.</p>
           </div>
         )}
       </div>
 
       <div className={styles.inputArea}>
         <FileUploadDropzone key={dropzoneKey} onFilesChange={handleFilesChange} inputId="dm-file-upload-input">
-          <div className={styles.inputBox} style={{ position: 'relative' }}>
+          <div className={styles.inputBox}>
             <MentionDropdown
               mentionQuery={mentionQuery} mentionIndex={mentionIndex} setMentionIndex={setMentionIndex}
               filteredMembers={filteredMembers} insertMention={insertMention}
@@ -607,11 +601,21 @@ export function DmArea({ workspaceId, targetUser }: DmAreaProps) {
                 onClick={() => document.getElementById('dm-file-upload-input')?.click()}>
                 📎
               </button>
-              <button className={styles.toolbarBtn} title="굵게 (Ctrl+B)" style={{ fontWeight: 700, fontSize: '0.875rem' }}
-                onMouseDown={(e) => { e.preventDefault(); editorRef.current?.focus(); document.execCommand('bold') }}>B</button>
-              <button className={styles.toolbarBtn} title="기울임 (Ctrl+I)" style={{ fontStyle: 'italic', fontSize: '0.875rem' }}
-                onMouseDown={(e) => { e.preventDefault(); editorRef.current?.focus(); document.execCommand('italic') }}>I</button>
-              <div ref={emojiPickerRef} style={{ position: 'relative', display: 'inline-block' }}>
+              <button
+                className={`${styles.toolbarBtn} ${styles.toolbarBtnBold}`}
+                title="굵게 (Ctrl+B)"
+                onMouseDown={(e) => { e.preventDefault(); editorRef.current?.focus(); document.execCommand('bold') }}
+              >
+                B
+              </button>
+              <button
+                className={`${styles.toolbarBtn} ${styles.toolbarBtnItalic}`}
+                title="기울임 (Ctrl+I)"
+                onMouseDown={(e) => { e.preventDefault(); editorRef.current?.focus(); document.execCommand('italic') }}
+              >
+                I
+              </button>
+              <div ref={emojiPickerRef} className={styles.emojiPickerWrap}>
                 <button className={styles.toolbarBtn} title="이모지" onClick={() => setEmojiPickerOpen((o) => !o)}>😊</button>
                 {emojiPickerOpen && (
                   <div className={styles.emojiPicker}>

@@ -301,6 +301,13 @@
 
 .bottomSwitchLink:hover { text-decoration: underline; }
 
+.formWrapper {
+  width: 100%;
+  max-width: 432px;
+  position: relative;
+  z-index: 1;
+}
+
 /* ── Error states ── */
 .errorMessage {
   font-size: 0.75rem;

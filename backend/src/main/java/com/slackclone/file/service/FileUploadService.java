@@ -38,8 +38,8 @@ public class FileUploadService {
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     );
 
-    private static final long IMAGE_MAX_BYTES     = 5L  * 1024 * 1024;  // 5MB
-    private static final long DOCUMENT_MAX_BYTES  = 20L * 1024 * 1024;  // 20MB
+    private static final long IMAGE_MAX_BYTES = 5L * 1024 * 1024;
+    private static final long DOCUMENT_MAX_BYTES = 20L * 1024 * 1024;
 
     @Autowired(required = false)
     private S3Presigner s3Presigner;

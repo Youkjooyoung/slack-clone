@@ -439,6 +439,7 @@
 }
 
 .inputBox {
+  position: relative;
   border: 2px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
   overflow: visible;
@@ -816,4 +817,103 @@
 
 .emojiPickerItem:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+
+.chatAreaWrap {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  height: 100%;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.inputBoxRelative {
+  position: relative;
+}
+
+.toolbarBtnBold {
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.toolbarBtnItalic {
+  font-style: italic;
+  font-size: 0.875rem;
+}
+
+.emojiPickerWrap {
+  position: relative;
+  display: inline-block;
+}
+
+.chatLoadingMsg {
+  text-align: center;
+  padding: 2rem;
+  color: #bbb;
+  font-size: 0.875rem;
+}
+
+.dmHeaderAvatarWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.dmHeaderAvatar {
+  width: 28px;
+  height: 28px;
+  font-size: 0.8rem;
+  border-radius: 50%;
+}
+
+.dmHeaderInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.dmStatusText {
+  font-size: 0.6875rem;
+}
+
+.dmStatusOnline {
+  color: #2bac76;
+}
+
+.dmStatusOffline {
+  color: #97979b;
+}
+
+.dmLoadingMsg {
+  text-align: center;
+  padding: 2rem;
+  color: #999;
+}
+
+.dmEmpty {
+  text-align: center;
+  padding: 3rem;
+  color: #616061;
+}
+
+.dmEmptyTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.dmEmptyMsg {
+  font-size: 0.9375rem;
+}
+
+.threadLoadingMsg {
+  padding: 1rem;
+  color: #999;
+  text-align: center;
+}
+
+.originalMsgRow {
+  padding: 0.5rem 0;
 }

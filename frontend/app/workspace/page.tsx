@@ -51,7 +51,6 @@ export default function WorkspaceListPage() {
   const [open, setOpen] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
 
-  // Redirect to home if not authenticated
   useEffect(() => {
     if (!accessToken) {
       router.replace('/')
@@ -109,13 +108,11 @@ export default function WorkspaceListPage() {
 
   return (
     <div className={styles.page}>
-      {/* 브랜드 */}
       <div className={styles.brand}>
         <div className={styles.brandIcon}>T</div>
         <span className={styles.brandName}>투톡</span>
       </div>
 
-      {/* 메인 카드 */}
       <div className={styles.card}>
         <div className={styles.cardHeader}>
           <p className={styles.cardTitle}>워크스페이스 선택</p>
@@ -124,7 +121,6 @@ export default function WorkspaceListPage() {
           </p>
         </div>
 
-        {/* 로딩 */}
         {isLoading && (
           <div className={styles.loadingWrap}>
             <div className={styles.loadingSpinner} />
@@ -132,7 +128,6 @@ export default function WorkspaceListPage() {
           </div>
         )}
 
-        {/* 에러 */}
         {isError && (
           <div className={styles.errorWrap}>
             <div className={styles.errorIcon}>{isNetworkError ? '🔌' : '⚠️'}</div>
@@ -155,7 +150,6 @@ export default function WorkspaceListPage() {
           </div>
         )}
 
-        {/* 워크스페이스 목록 */}
         {!isLoading && !isError && (
           <>
             {workspaces.length === 0 ? (
@@ -176,7 +170,7 @@ export default function WorkspaceListPage() {
                   >
                     <div className={styles.wsAvatar}>
                       {ws.iconUrl
-                        ? <img src={ws.iconUrl} alt={ws.name} width={36} height={36} style={{ borderRadius: 8 }} />
+                        ? <img src={ws.iconUrl} alt={ws.name} width={36} height={36} className={styles.wsAvatarImg} />
                         : ws.name.charAt(0).toUpperCase()}
                     </div>
                     <div className={styles.wsInfo}>
@@ -193,7 +187,6 @@ export default function WorkspaceListPage() {
           </>
         )}
 
-        {/* 푸터 */}
         <div className={styles.cardFooter}>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>

@@ -47,6 +47,6 @@ public class AuthController {
         if (StringUtils.hasText(bearer) && bearer.startsWith("Bearer ")) {
             return bearer.substring(7);
         }
-        throw new IllegalArgumentException("유효하지 않은 Authorization 헤더입니다.");
+        throw new IllegalArgumentException("유효하지 않은 인증 헤더입니다.");
     }
 }

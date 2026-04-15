@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 
 interface PresenceState {
-  // workspaceId → Set<userId>
   onlineIds: Record<string, Set<string>>
   setOnlineIds: (workspaceId: string, ids: string[]) => void
   setUserOnline: (workspaceId: string, userId: string, online: boolean) => void

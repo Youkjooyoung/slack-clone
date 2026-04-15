@@ -80,17 +80,8 @@ export function Sidebar({ workspaceId }: SidebarProps) {
   const [inviteError, setInviteError] = useState<string | null>(null)
   const [serverError, setServerError] = useState<string | null>(null)
   const [profileForm, setProfileForm] = useState({ displayName: '', statusMessage: '', statusEmoji: '', presence: 'online', notificationsEnabled: true })
-  const wsDropdownRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (wsDropdownOpen && wsDropdownRef.current && !wsDropdownRef.current.contains(e.target as Node)) {
-        setWsDropdownOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [wsDropdownOpen])
+  const wsDropdownRef = useRef<HTMLDivElement>(null)
 
   useNotifications()
 
@@ -243,6 +234,16 @@ export function Sidebar({ workspaceId }: SidebarProps) {
     router.push(`/workspace/${workspaceId}/channel/${channel.id}`)
   }
 
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (wsDropdownOpen && wsDropdownRef.current && !wsDropdownRef.current.contains(e.target as Node)) {
+        setWsDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [wsDropdownOpen])
+
   const myMemberId = me?.id
   const onlineSet = getOnlineSet(workspaceId)
   const displayName = me?.displayName ?? me?.username ?? '...'
@@ -250,9 +251,8 @@ export function Sidebar({ workspaceId }: SidebarProps) {
   return (
     <aside className={styles.sidebar}>
 
-      {/* ── Workspace Header ── */}
       <div className={styles.workspaceHeader}>
-        <div ref={wsDropdownRef} style={{ position: 'relative', flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div ref={wsDropdownRef} className={styles.wsHeaderFlex}>
           <div
             className={styles.workspaceLogoAvatar}
             onClick={() => router.push('/workspace')}
@@ -293,10 +293,8 @@ export function Sidebar({ workspaceId }: SidebarProps) {
         </div>
       </div>
 
-      {/* ── Scrollable Channel / DM List ── */}
       <div className={styles.scrollArea}>
 
-        {/* Channels */}
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
             <span className={styles.sectionTitle}>채널</span>
@@ -320,7 +318,6 @@ export function Sidebar({ workspaceId }: SidebarProps) {
           })}
         </div>
 
-        {/* DMs */}
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
             <span className={styles.sectionTitle}>다이렉트 메시지</span>
@@ -341,8 +338,7 @@ export function Sidebar({ workspaceId }: SidebarProps) {
                   }}
                 >
                   <span
-                    className={`${styles.onlineDot} ${isOnline ? styles.onlineDotPulse : ''}`}
-                    style={{ backgroundColor: isOnline ? '#03C75A' : '#97979b' }}
+                    className={`${styles.onlineDot} ${isOnline ? styles.onlineDotPulse : ''} ${isOnline ? styles.onlineDotOnline : styles.onlineDotOffline}`}
                   />
                   <span className={styles.channelName}>{m.displayName ?? m.username}</span>
                   {dmUnreadCount > 0 && (
@@ -354,7 +350,6 @@ export function Sidebar({ workspaceId }: SidebarProps) {
         </div>
       </div>
 
-      {/* ── Profile Footer ── */}
       <div className={styles.profileFooter}>
         <div className={styles.profileInfo} onClick={handleProfileOpen}>
           <div className={styles.profileAvatar}>
@@ -364,7 +359,7 @@ export function Sidebar({ workspaceId }: SidebarProps) {
               style={{ background: presenceColorOf(me?.statusEmoji) }}
             />
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div className={styles.profileInfoContent}>
             <div className={styles.profileName}>{displayName}</div>
             <div className={styles.profileStatus}>
               {me?.statusMessage || presenceLabelOf(me?.statusEmoji)}
@@ -380,9 +375,6 @@ export function Sidebar({ workspaceId }: SidebarProps) {
         </button>
       </div>
 
-      {/* ════════════ Dialogs ════════════ */}
-
-      {/* 멤버 초대 */}
       <Dialog open={inviteDialogOpen} onOpenChange={(o) => { setInviteDialogOpen(o); setInviteError(null) }}>
         <DialogContent>
           <DialogHeader>
@@ -390,7 +382,7 @@ export function Sidebar({ workspaceId }: SidebarProps) {
             <DialogDescription>이메일 주소로 워크스페이스에 멤버를 초대합니다.</DialogDescription>
           </DialogHeader>
           <div className={styles.formField}>
-            <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>이메일</label>
+            <label className={styles.inviteLabel}>이메일</label>
             <Input
               placeholder="user@example.com"
               value={inviteEmail}
@@ -399,13 +391,12 @@ export function Sidebar({ workspaceId }: SidebarProps) {
             />
             {inviteError && <p className={styles.errorMsg}>{inviteError}</p>}
           </div>
-          <Button onClick={() => inviteMember(inviteEmail)} disabled={isInviting || !inviteEmail.trim()} style={{ width: '100%' }}>
+          <Button onClick={() => inviteMember(inviteEmail)} disabled={isInviting || !inviteEmail.trim()} className={styles.fullWidthBtn}>
             {isInviting ? '초대 중...' : '초대하기'}
           </Button>
         </DialogContent>
       </Dialog>
 
-      {/* 채널 생성 */}
       <Dialog open={channelDialogOpen} onOpenChange={setChannelDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -429,7 +420,7 @@ export function Sidebar({ workspaceId }: SidebarProps) {
                   <FormMessage className={styles.errorMsg} />
                 </FormItem>
               )} />
-              <Button type="submit" disabled={isPending} style={{ width: '100%' }}>
+              <Button type="submit" disabled={isPending} className={styles.fullWidthBtn}>
                 {isPending ? '생성 중...' : '채널 만들기'}
               </Button>
             </form>
@@ -437,7 +428,6 @@ export function Sidebar({ workspaceId }: SidebarProps) {
         </DialogContent>
       </Dialog>
 
-      {/* 프로필 설정 (Figma v9) */}
       <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
         <DialogContent className={styles.profileModalContent}>
           <DialogHeader className={styles.profileModalHeader}>
@@ -448,7 +438,6 @@ export function Sidebar({ workspaceId }: SidebarProps) {
           </DialogHeader>
 
           <div className={styles.profileModalBody}>
-            {/* Hero row */}
             <div className={styles.profileHeroRow}>
               <div className={styles.profileHeroAvatar}>
                 {me?.avatarUrl ? (
@@ -469,7 +458,6 @@ export function Sidebar({ workspaceId }: SidebarProps) {
               </div>
             </div>
 
-            {/* 이름 */}
             <div className={styles.profileFormField}>
               <label className={styles.profileFormLabel}>
                 <User size={14} /> 이름
@@ -482,7 +470,6 @@ export function Sidebar({ workspaceId }: SidebarProps) {
               />
             </div>
 
-            {/* 이메일 */}
             <div className={styles.profileFormField}>
               <label className={styles.profileFormLabel}>
                 <Mail size={14} /> 이메일
@@ -494,7 +481,6 @@ export function Sidebar({ workspaceId }: SidebarProps) {
               />
             </div>
 
-            {/* 상태 */}
             <div className={styles.profileFormField}>
               <label className={styles.profileFormLabel}>상태</label>
               <div className={styles.profileSelectWrap}>
@@ -518,7 +504,6 @@ export function Sidebar({ workspaceId }: SidebarProps) {
               </div>
             </div>
 
-            {/* 상태 메시지 */}
             <div className={styles.profileFormField}>
               <label className={styles.profileFormLabel}>상태 메시지</label>
               <input
@@ -529,7 +514,6 @@ export function Sidebar({ workspaceId }: SidebarProps) {
               />
             </div>
 
-            {/* 알림 받기 */}
             <div className={styles.profileSettingRow}>
               <div className={styles.profileSettingIcon}>
                 <Bell size={18} />
@@ -548,7 +532,6 @@ export function Sidebar({ workspaceId }: SidebarProps) {
               </button>
             </div>
 
-            {/* 설정 */}
             <button type="button" className={styles.profileSettingRow}>
               <div className={styles.profileSettingIcon}>
                 <Settings size={18} />
@@ -560,7 +543,6 @@ export function Sidebar({ workspaceId }: SidebarProps) {
               <span className={styles.profileSettingChevron}>›</span>
             </button>
 
-            {/* 로그아웃 */}
             <button
               type="button"
               className={`${styles.profileSettingRow} ${styles.profileSettingRowDanger}`}

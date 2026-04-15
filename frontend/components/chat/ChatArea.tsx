@@ -28,9 +28,8 @@ import styles from './chat.module.css'
 
 const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮']
 const EMOJI_PALETTE = ['😀','😂','🥲','😍','🤩','😎','🤔','😢','😡','🥳','👍','👎','👏','🙌','❤️','🔥','⭐','💯','✅','🎉','🚀','💬','📌','📎']
-const GROUP_THRESHOLD_MS = 5 * 60 * 1000 // 5분 이내 연속 메시지 → 그룹
+const GROUP_THRESHOLD_MS = 5 * 60 * 1000
 
-/** contentEditable의 innerHTML → 마크다운 텍스트 변환 */
 function htmlToMarkdown(html: string): string {
   return html
     .replace(/<br\s*\/?>/gi, '\n')
@@ -49,7 +48,6 @@ function htmlToMarkdown(html: string): string {
     .replace(/^\n+/, '')
 }
 
-/** contentEditable에 텍스트/이모지 삽입 */
 function insertAtCursor(el: HTMLElement, text: string) {
   el.focus()
   const sel = window.getSelection()
@@ -89,11 +87,9 @@ const FILE_SERVE_RE = /https?:\/\/\S+\/api\/files\/serve\/\S+/gi
 function extractImageUrls(content: string): string[] {
   const fromExt = [...content.matchAll(IMAGE_URL_RE)].map((m) => m[0])
   const fromServe = [...content.matchAll(FILE_SERVE_RE)].map((m) => m[0])
-  // 중복 제거
   return [...new Set([...fromExt, ...fromServe])]
 }
 
-/** 이미지 URL을 텍스트에서 제거 (이미지는 별도 <img>로 표시) */
 function stripImageUrls(content: string): string {
   const imageUrls = extractImageUrls(content)
   let result = content
@@ -103,9 +99,7 @@ function stripImageUrls(content: string): string {
   return result.trim()
 }
 
-/** 간단한 마크다운 → HTML 변환 (bold, italic, code, strikethrough) */
 function renderMarkdown(text: string): string {
-  // URL을 플레이스홀더로 보호 (언더스코어 등이 마크다운으로 변환되지 않도록)
   const urls: string[] = []
   let processed = text.replace(/https?:\/\/\S+/g, (match) => {
     urls.push(match)
@@ -124,7 +118,6 @@ function renderMarkdown(text: string): string {
     .replace(/`(.+?)`/g, '<code>$1</code>')
     .replace(/\n/g, '<br/>')
 
-  // URL 복원 (클릭 가능한 링크로 변환)
   processed = processed.replace(/__URL_PLACEHOLDER_(\d+)__/g, (_, idx) => {
     const url = urls[Number(idx)]
     const escaped = url.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -134,11 +127,9 @@ function renderMarkdown(text: string): string {
   return processed
 }
 
-/** 이전 메시지와 같은 sender + 5분 이내 → grouped */
 function isGrouped(msg: ChatMessage, prev: ChatMessage | undefined): boolean {
   if (!prev) return false
   if (msg.senderId !== prev.senderId) return false
-  // column-reverse: msg(index i) 는 prev(index i+1) 보다 최신
   return new Date(msg.createdAt).getTime() - new Date(prev.createdAt).getTime() < GROUP_THRESHOLD_MS
 }
 
@@ -146,65 +137,10 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
   const { user } = useAuthStore()
   const { messages, setMessages, removeMessage, updateMessage } = useChatStore()
   const { inputMinHeight, setInputMinHeight } = useLayoutStore()
+
   const [inputHeight, setInputHeight] = useState(inputMinHeight)
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
-  const emojiPickerRef = useRef<HTMLDivElement>(null)
-  const dragStartY = useRef(0)
-  const dragStartH = useRef(0)
-  const isDragging = useRef(false)
-
-  // Sync from store when it changes (e.g. MorePanel preset change)
-  useEffect(() => { setInputHeight(inputMinHeight) }, [inputMinHeight])
-
-  // Close emoji picker on outside click
-  useEffect(() => {
-    if (!emojiPickerOpen) return
-    function handleClickOutside(e: globalThis.MouseEvent) {
-      if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target as Node)) {
-        setEmojiPickerOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [emojiPickerOpen])
-
-  const insertEmoji = useCallback((emoji: string) => {
-    const el = editorRef.current
-    if (!el) return
-    insertAtCursor(el, emoji)
-    setEmojiPickerOpen(false)
-  }, [])
-
-  const handleResizeStart = useCallback((e: MouseEvent<HTMLDivElement>) => {
-    isDragging.current = true
-    dragStartY.current = e.clientY
-    dragStartH.current = inputHeight
-    e.preventDefault()
-
-    const onMouseMove = (ev: globalThis.MouseEvent) => {
-      if (!isDragging.current) return
-      const delta = dragStartY.current - ev.clientY // drag up = positive = taller
-      const next = Math.max(44, Math.min(300, dragStartH.current + delta))
-      setInputHeight(next)
-    }
-
-    const onMouseUp = (ev: globalThis.MouseEvent) => {
-      isDragging.current = false
-      const delta = dragStartY.current - ev.clientY
-      const persisted = Math.max(44, Math.min(300, dragStartH.current + delta))
-      setInputMinHeight(persisted)
-      document.removeEventListener('mousemove', onMouseMove)
-      document.removeEventListener('mouseup', onMouseUp)
-    }
-
-    document.addEventListener('mousemove', onMouseMove)
-    document.addEventListener('mouseup', onMouseUp)
-  }, [inputHeight, setInputMinHeight])
-
-  const editorRef = useRef<HTMLDivElement>(null)
-  const editTextareaRef = useRef<HTMLTextAreaElement>(null)
   const [attachedFiles, setAttachedFiles] = useState<UploadedFile[]>([])
-  const attachedFilesRef = useRef<UploadedFile[]>([])
   const [dropzoneKey, setDropzoneKey] = useState(0)
   const [threadMessage, setThreadMessage] = useState<ChatMessage | null>(null)
   const [messageReactions, setMessageReactions] = useState<Record<string, Reaction[]>>({})
@@ -213,7 +149,20 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchInput, setSearchInput] = useState('')
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null)
+  const [mentionIndex, setMentionIndex] = useState(0)
+
+  const emojiPickerRef = useRef<HTMLDivElement>(null)
+  const dragStartY = useRef(0)
+  const dragStartH = useRef(0)
+  const isDragging = useRef(false)
+  const editorRef = useRef<HTMLDivElement>(null)
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null)
+  const attachedFilesRef = useRef<UploadedFile[]>([])
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const messageListRef = useRef<HTMLDivElement>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
+  const isAtBottomRef = useRef(true)
 
   const { mutate: toggleReaction } = useMutation({
     mutationFn: async ({ messageId, emoji }: { messageId: string; emoji: string }) => {
@@ -238,6 +187,79 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
     },
     onError: () => toast.error('반응 처리에 실패했습니다.'),
   })
+
+  const { data: searchResults = [], isFetching: isSearching } = useQuery({
+    queryKey: ['search', channel.id, searchQuery],
+    queryFn: () => searchQuery
+      ? messageApi.search(workspaceId, channel.id, searchQuery).then((r) => r.data.data)
+      : Promise.resolve([]),
+    enabled: !!searchQuery,
+    staleTime: 30_000,
+  })
+
+  const { sendMessage } = useWebSocket({ workspaceId, channelId: channel.id })
+
+  const { data: members = [] } = useQuery<WorkspaceMember[]>({
+    queryKey: ['workspace-members', workspaceId],
+    queryFn: () => workspaceApi.getMembers(workspaceId).then((r) => r.data.data),
+    staleTime: 60_000,
+  })
+
+  const filteredMembers = useMemo(() => {
+    if (mentionQuery === null) return []
+    const lq = mentionQuery.toLowerCase()
+    return members.filter((m) =>
+      m.username.toLowerCase().includes(lq) || (m.displayName?.toLowerCase() ?? '').includes(lq)
+    ).slice(0, 6)
+  }, [members, mentionQuery])
+
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
+    useInfiniteQuery({
+      queryKey: ['messages', channel.id],
+      queryFn: ({ pageParam }) =>
+        messageApi
+          .getMessages(workspaceId, channel.id, pageParam as string | undefined)
+          .then((r) => r.data.data),
+      initialPageParam: undefined as string | undefined,
+      getNextPageParam: (lastPage: MessagePage) =>
+        lastPage.hasMore ? lastPage.nextCursor ?? undefined : undefined,
+    })
+
+  const channelMessages = messages[channel.id] ?? []
+  const latestMsgId = channelMessages[0]?.id
+
+  const insertEmoji = useCallback((emoji: string) => {
+    const el = editorRef.current
+    if (!el) return
+    insertAtCursor(el, emoji)
+    setEmojiPickerOpen(false)
+  }, [])
+
+  const handleResizeStart = useCallback((e: MouseEvent<HTMLDivElement>) => {
+    isDragging.current = true
+    dragStartY.current = e.clientY
+    dragStartH.current = inputHeight
+    e.preventDefault()
+
+    const onMouseMove = (ev: globalThis.MouseEvent) => {
+      if (!isDragging.current) return
+      const delta = dragStartY.current - ev.clientY
+      const next = Math.max(44, Math.min(300, dragStartH.current + delta))
+      setInputHeight(next)
+    }
+
+    const onMouseUp = (ev: globalThis.MouseEvent) => {
+      isDragging.current = false
+      const delta = dragStartY.current - ev.clientY
+      const persisted = Math.max(44, Math.min(300, dragStartH.current + delta))
+      setInputMinHeight(persisted)
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+    }
+
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+  }, [inputHeight, setInputMinHeight])
 
   const handleDelete = useCallback(async (messageId: string) => {
     try {
@@ -280,15 +302,6 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
     }
   }, [handleEditSubmit])
 
-  const { data: searchResults = [], isFetching: isSearching } = useQuery({
-    queryKey: ['search', channel.id, searchQuery],
-    queryFn: () => searchQuery
-      ? messageApi.search(workspaceId, channel.id, searchQuery).then((r) => r.data.data)
-      : Promise.resolve([]),
-    enabled: !!searchQuery,
-    staleTime: 30_000,
-  })
-
   const handleSearchOpen = useCallback(() => {
     setSearchOpen(true)
     setTimeout(() => searchInputRef.current?.focus(), 0)
@@ -304,28 +317,6 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
     if (e.key === 'Enter') setSearchQuery(searchInput.trim())
     if (e.key === 'Escape') handleSearchClose()
   }, [searchInput, handleSearchClose])
-
-  const { sendMessage } = useWebSocket({ workspaceId, channelId: channel.id })
-
-  // ── 멘션 인라인 상태 (contentEditable용) ─────────────────────────────────
-  const [mentionQuery, setMentionQuery] = useState<string | null>(null)
-  const [mentionIndex, setMentionIndex] = useState(0)
-
-  const { data: members = [] } = useQuery<WorkspaceMember[]>({
-    queryKey: ['workspace-members', workspaceId],
-    queryFn: () => workspaceApi.getMembers(workspaceId).then((r) => r.data.data),
-    staleTime: 60_000,
-  })
-
-  const filteredMembers = useMemo(() => {
-    if (mentionQuery === null) return []
-    const lq = mentionQuery.toLowerCase()
-    return members.filter((m) =>
-      m.username.toLowerCase().includes(lq) || (m.displayName?.toLowerCase() ?? '').includes(lq)
-    ).slice(0, 6)
-  }, [members, mentionQuery])
-
-  useEffect(() => { setMentionIndex(0) }, [filteredMembers.length])
 
   const detectMention = useCallback(() => {
     const el = editorRef.current
@@ -368,53 +359,16 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
     setMentionQuery(null)
   }, [])
 
-  // ── 스크롤 자동 하단 이동 ──────────────────────────────────────────────────
-  const messageListRef = useRef<HTMLDivElement>(null)
-  const bottomRef = useRef<HTMLDivElement>(null)
-  const isAtBottomRef = useRef(true)
-
-  // column-reverse라서 scrollTop 0 = 최신 메시지 위치
   const checkAtBottom = useCallback(() => {
     const el = messageListRef.current
     if (!el) return
-    isAtBottomRef.current = el.scrollTop >= -40 // 40px 이내면 "하단"
+    isAtBottomRef.current = el.scrollTop >= -40
   }, [])
 
   const scrollToBottom = useCallback(() => {
     const el = messageListRef.current
     if (el) el.scrollTop = 0
   }, [])
-
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
-    useInfiniteQuery({
-      queryKey: ['messages', channel.id],
-      queryFn: ({ pageParam }) =>
-        messageApi
-          .getMessages(workspaceId, channel.id, pageParam as string | undefined)
-          .then((r) => r.data.data),
-      initialPageParam: undefined as string | undefined,
-      getNextPageParam: (lastPage: MessagePage) =>
-        lastPage.hasMore ? lastPage.nextCursor ?? undefined : undefined,
-    })
-
-  useEffect(() => {
-    if (!data) return
-    setMessages(channel.id, data.pages.flatMap((p) => p.messages))
-    // 첫 로드 시 하단으로 스크롤
-    scrollToBottom()
-  }, [data, channel.id, setMessages, scrollToBottom])
-
-  // 새 메시지 도착 시 하단에 있으면 자동 스크롤
-  const channelMessages = messages[channel.id] ?? []
-  const latestMsgId = channelMessages[0]?.id
-  useEffect(() => {
-    if (isAtBottomRef.current) scrollToBottom()
-  }, [latestMsgId, scrollToBottom])
-
-  useEffect(() => {
-    messageApi.markAsRead(workspaceId, channel.id).catch(() => null)
-    useUnreadStore.getState().clearChannel(channel.id)
-  }, [workspaceId, channel.id])
 
   const handleSend = useCallback(() => {
     const el = editorRef.current
@@ -439,7 +393,6 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLDivElement>) => {
-      // 멘션 드롭다운 키 처리
       if (mentionQuery !== null && filteredMembers.length > 0) {
         if (e.key === 'ArrowUp') { e.preventDefault(); setMentionIndex((p) => (p > 0 ? p - 1 : filteredMembers.length - 1)); return }
         if (e.key === 'ArrowDown') { e.preventDefault(); setMentionIndex((p) => (p < filteredMembers.length - 1 ? p + 1 : 0)); return }
@@ -464,7 +417,6 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
 
     for (let i = 0; i < channelMessages.length; i++) {
       const msg = channelMessages[i]
-      // messageList가 column-reverse이므로 배열 다음 항목이 시간상 이전 메시지
       const prevMsg = channelMessages[i + 1]
       const grouped = isGrouped(msg, prevMsg)
       const showDate = !prevMsg || !isSameDay(msg.createdAt, prevMsg.createdAt)
@@ -484,7 +436,6 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
 
       result.push(
         <div key={msg.id} className={rowClass}>
-          {/* 아바타 or 시간 */}
           {grouped ? (
             <div className={styles.groupedTime}>{formatTime(msg.createdAt)}</div>
           ) : (
@@ -500,7 +451,6 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
           )}
 
           <div className={styles.messageBody}>
-            {/* 이름 + 시간 (첫 메시지만) */}
             {!grouped && (
               <div className={styles.messageMeta}>
                 <span className={styles.senderName}>
@@ -550,7 +500,6 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
                     </>
                   )
                 })()}
-                {/* 답글 개수 버튼 */}
                 {(msg.replyCount ?? 0) > 0 && (
                   <button
                     className={styles.replyCountBtn}
@@ -562,7 +511,6 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
               </>
             )}
 
-            {/* 이모지 반응 */}
             {Object.keys(reactionGroups).length > 0 && (
               <div className={styles.reactionBar}>
                 {Object.entries(reactionGroups).map(([emoji, { count, mine }]) => (
@@ -578,7 +526,6 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
             )}
           </div>
 
-          {/* 호버 액션 */}
           <div className={styles.messageActions}>
             {QUICK_EMOJIS.map((emoji) => (
               <button
@@ -632,10 +579,39 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
     return result
   }, [channelMessages, messageReactions, user?.id, editingId, editContent, handleEditStart, handleEditSubmit, handleEditKeyDown, handleDelete, toggleReaction])
 
+  useEffect(() => { setInputHeight(inputMinHeight) }, [inputMinHeight])
+
+  useEffect(() => {
+    if (!emojiPickerOpen) return
+    function handleClickOutside(e: globalThis.MouseEvent) {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target as Node)) {
+        setEmojiPickerOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [emojiPickerOpen])
+
+  useEffect(() => {
+    if (!data) return
+    setMessages(channel.id, data.pages.flatMap((p) => p.messages))
+    scrollToBottom()
+  }, [data, channel.id, setMessages, scrollToBottom])
+
+  useEffect(() => {
+    if (isAtBottomRef.current) scrollToBottom()
+  }, [latestMsgId, scrollToBottom])
+
+  useEffect(() => {
+    messageApi.markAsRead(workspaceId, channel.id).catch(() => null)
+    useUnreadStore.getState().clearChannel(channel.id)
+  }, [workspaceId, channel.id])
+
+  useEffect(() => { setMentionIndex(0) }, [filteredMembers.length])
+
   return (
-    <div style={{ display: 'flex', flex: 1, overflow: 'hidden', height: '100%' }}>
+    <div className={styles.chatAreaWrap}>
       <div className={styles.chatArea}>
-        {/* 채널 헤더 */}
         <div className={styles.header}>
           {searchOpen ? (
             <>
@@ -659,7 +635,7 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
                   <span className={styles.headerMemberCount}>멤버 {members.length}명</span>
                 </>
               )}
-              <div style={{ flex: 1 }} />
+              <div className={styles.spacer} />
               <div className={styles.headerActionGroup}>
                 <button className={styles.headerActionBtn} onClick={handleSearchOpen} title="검색">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -677,7 +653,6 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
           )}
         </div>
 
-        {/* 검색 결과 패널 */}
         {searchQuery && (
           <div className={styles.searchPanel}>
             <div className={styles.searchPanelHeader}>
@@ -696,13 +671,12 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
           </div>
         )}
 
-        {/* 메시지 목록 */}
         <div
           ref={messageListRef}
           className={styles.messageList}
           onScroll={checkAtBottom}
         >
-        {renderedMessages}
+          {renderedMessages}
 
           {hasNextPage && (
             <button
@@ -715,7 +689,7 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
           )}
 
           {isLoading && (
-            <div style={{ textAlign: 'center', padding: '2rem', color: '#bbb', fontSize: '0.875rem' }}>
+            <div className={styles.chatLoadingMsg}>
               메시지를 불러오는 중...
             </div>
           )}
@@ -731,12 +705,10 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
           )}
         </div>
 
-        {/* 입력창 */}
         <div className={styles.inputArea}>
-          {/* Drag-to-resize handle */}
           <div className={styles.resizeHandle} onMouseDown={handleResizeStart} title="드래그해서 크기 조절" />
           <FileUploadDropzone key={dropzoneKey} onFilesChange={handleFilesChange} inputId="channel-file-upload-input">
-            <div className={styles.inputBox} style={{ position: 'relative' }}>
+            <div className={styles.inputBox}>
               <MentionDropdown
                 mentionQuery={mentionQuery} mentionIndex={mentionIndex} setMentionIndex={setMentionIndex}
                 filteredMembers={filteredMembers} insertMention={insertMention}
@@ -746,11 +718,21 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
                   onClick={() => document.getElementById('channel-file-upload-input')?.click()}>
                   📎
                 </button>
-                <button className={styles.toolbarBtn} title="굵게 (Ctrl+B)" style={{ fontWeight: 700, fontSize: '0.875rem' }}
-                  onMouseDown={(e) => { e.preventDefault(); editorRef.current?.focus(); document.execCommand('bold') }}>B</button>
-                <button className={styles.toolbarBtn} title="기울임 (Ctrl+I)" style={{ fontStyle: 'italic', fontSize: '0.875rem' }}
-                  onMouseDown={(e) => { e.preventDefault(); editorRef.current?.focus(); document.execCommand('italic') }}>I</button>
-                <div ref={emojiPickerRef} style={{ position: 'relative', display: 'inline-block' }}>
+                <button
+                  className={`${styles.toolbarBtn} ${styles.toolbarBtnBold}`}
+                  title="굵게 (Ctrl+B)"
+                  onMouseDown={(e) => { e.preventDefault(); editorRef.current?.focus(); document.execCommand('bold') }}
+                >
+                  B
+                </button>
+                <button
+                  className={`${styles.toolbarBtn} ${styles.toolbarBtnItalic}`}
+                  title="기울임 (Ctrl+I)"
+                  onMouseDown={(e) => { e.preventDefault(); editorRef.current?.focus(); document.execCommand('italic') }}
+                >
+                  I
+                </button>
+                <div ref={emojiPickerRef} className={styles.emojiPickerWrap}>
                   <button className={styles.toolbarBtn} title="이모지" onClick={() => setEmojiPickerOpen((o) => !o)}>😊</button>
                   {emojiPickerOpen && (
                     <div className={styles.emojiPicker}>

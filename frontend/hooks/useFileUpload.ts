@@ -35,8 +35,8 @@ const ALLOWED_TYPES: Record<string, 'image' | 'document'> = {
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'document',
 }
 
-const IMAGE_MAX = 5 * 1024 * 1024   // 5MB
-const DOC_MAX  = 20 * 1024 * 1024  // 20MB
+const IMAGE_MAX = 5 * 1024 * 1024
+const DOC_MAX  = 20 * 1024 * 1024
 
 function validateFile(file: File): string | null {
   const category = ALLOWED_TYPES[file.type]
@@ -83,7 +83,6 @@ export function useFileUpload(): UseFileUploadReturn {
       )
       const attachment = localData.data
 
-      // 이미지 미리보기 URL 생성
       const previewUrl = ALLOWED_TYPES[file.type] === 'image'
         ? URL.createObjectURL(file)
         : null
@@ -93,7 +92,6 @@ export function useFileUpload(): UseFileUploadReturn {
       setProgress(100)
       return uploaded
     } catch (err) {
-      console.error('[useFileUpload] 업로드 실패:', err)
       const axiosErr = err as AxiosError<{ message?: string }>
       const message =
         axiosErr.response?.data?.message ??
