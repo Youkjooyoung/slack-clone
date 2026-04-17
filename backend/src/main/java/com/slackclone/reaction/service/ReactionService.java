@@ -12,6 +12,7 @@ import com.slackclone.domain.reaction.repository.ReactionRepository;
 import com.slackclone.domain.user.entity.User;
 import com.slackclone.reaction.dto.ReactionResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,9 +46,9 @@ public class ReactionService {
                 .user(user)
                 .emoji(emoji)
                 .build();
-        reactionRepository.save(reaction);
+        Reaction saved = saveOrTranslateDuplicate(reaction);
 
-        ReactionResponse response = ReactionResponse.from(reaction);
+        ReactionResponse response = ReactionResponse.from(saved);
         messagingTemplate.convertAndSend(
                 "/topic/channel/" + message.getChannel().getId() + "/reactions", response);
 
@@ -84,14 +85,18 @@ public class ReactionService {
             throw new BusinessException(ErrorCode.DM_ACCESS_DENIED);
         }
 
+        if (reactionRepository.findByDirectMessageIdAndUserIdAndEmoji(dmId, user.getId(), emoji).isPresent()) {
+            throw new BusinessException(ErrorCode.REACTION_ALREADY_EXISTS);
+        }
+
         Reaction reaction = Reaction.builder()
                 .directMessage(dm)
                 .user(user)
                 .emoji(emoji)
                 .build();
-        reactionRepository.save(reaction);
+        Reaction saved = saveOrTranslateDuplicate(reaction);
 
-        ReactionResponse response = ReactionResponse.from(reaction);
+        ReactionResponse response = ReactionResponse.from(saved);
         messagingTemplate.convertAndSend(
                 dmTopic(dm.getWorkspace().getId(), dm.getSender().getId(), dm.getReceiver().getId()) + "/reactions",
                 response);
@@ -118,6 +123,14 @@ public class ReactionService {
         messagingTemplate.convertAndSend(
                 dmTopic(dm.getWorkspace().getId(), dm.getSender().getId(), dm.getReceiver().getId()) + "/reactions/remove",
                 ReactionResponse.from(reaction));
+    }
+
+    private Reaction saveOrTranslateDuplicate(Reaction reaction) {
+        try {
+            return reactionRepository.saveAndFlush(reaction);
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(ErrorCode.REACTION_ALREADY_EXISTS);
+        }
     }
 
     private static String dmTopic(UUID workspaceId, UUID uid1, UUID uid2) {
