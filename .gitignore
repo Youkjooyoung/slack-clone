@@ -71,3 +71,7 @@ yarn-error.log*
 coverage/
 .nyc_output/
 frontend/.jest-cache/
+
+# ── Claude Code / MCP (로컬 전용) ───────────────────────────
+.claude/
+.mcp.json
