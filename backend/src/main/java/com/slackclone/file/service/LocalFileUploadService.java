@@ -50,7 +50,19 @@ public class LocalFileUploadService {
 
     public ResponseEntity<Resource> serveLocalFile(String userId, String fileName) {
         try {
-            Path filePath = Paths.get(uploadDir, userId, fileName);
+            if (userId == null || fileName == null
+                    || fileName.contains("..") || fileName.contains("/") || fileName.contains("\\")
+                    || userId.contains("..") || userId.contains("/") || userId.contains("\\")) {
+                return ResponseEntity.notFound().build();
+            }
+            UUID.fromString(userId);
+
+            Path baseDir = Paths.get(uploadDir).toAbsolutePath().normalize();
+            Path filePath = baseDir.resolve(userId).resolve(fileName).normalize();
+            if (!filePath.startsWith(baseDir)) {
+                return ResponseEntity.notFound().build();
+            }
+
             Resource resource = new UrlResource(filePath.toUri());
             if (!resource.exists()) return ResponseEntity.notFound().build();
 
