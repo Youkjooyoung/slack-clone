@@ -2,6 +2,8 @@ package com.slackclone.auth.controller;
 
 import com.slackclone.auth.dto.*;
 import com.slackclone.auth.service.AuthService;
+import com.slackclone.common.exception.BusinessException;
+import com.slackclone.common.exception.ErrorCode;
 import com.slackclone.common.response.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +49,6 @@ public class AuthController {
         if (StringUtils.hasText(bearer) && bearer.startsWith("Bearer ")) {
             return bearer.substring(7);
         }
-        throw new IllegalArgumentException("유효하지 않은 인증 헤더입니다.");
+        throw new BusinessException(ErrorCode.INVALID_TOKEN);
     }
 }
