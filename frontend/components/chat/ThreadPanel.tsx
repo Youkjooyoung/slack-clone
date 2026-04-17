@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import styles from './chat.module.css'
 import threadStyles from './thread.module.css'
 import { useMention, MentionDropdown } from '@/hooks/useMention'
+import { renderMarkdown } from '@/lib/markdown'
 
 interface ThreadPanelProps {
   workspaceId: string
@@ -26,20 +27,6 @@ const IMAGE_URL_RE = /https?:\/\/\S+\.(?:png|jpe?g|gif|webp|svg|bmp)(\?[^\s]*)?/
 
 function extractImageUrls(content: string): string[] {
   return [...content.matchAll(IMAGE_URL_RE)].map((m) => m[0])
-}
-
-function renderMarkdown(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/_(.+?)_/g, '<em>$1</em>')
-    .replace(/~~(.+?)~~/g, '<del>$1</del>')
-    .replace(/`(.+?)`/g, '<code>$1</code>')
-    .replace(/\n/g, '<br/>')
 }
 
 export function ThreadPanel({ workspaceId, channel, parentMessage, onClose, sendMessage }: ThreadPanelProps) {

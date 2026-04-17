@@ -23,6 +23,7 @@ import { MentionDropdown } from '@/hooks/useMention'
 import { ThreadPanel } from './ThreadPanel'
 import { LinkPreview, extractPreviewUrl } from './LinkPreview'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
+import { renderMarkdown } from '@/lib/markdown'
 import { toast } from 'sonner'
 import styles from './chat.module.css'
 
@@ -99,34 +100,6 @@ function stripImageUrls(content: string): string {
   return result.trim()
 }
 
-function renderMarkdown(text: string): string {
-  const urls: string[] = []
-  let processed = text.replace(/https?:\/\/\S+/g, (match) => {
-    urls.push(match)
-    return `__URL_PLACEHOLDER_${urls.length - 1}__`
-  })
-
-  processed = processed
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/(?<![a-zA-Z0-9\/_])_(.+?)_(?![a-zA-Z0-9\/_])/g, '<em>$1</em>')
-    .replace(/~~(.+?)~~/g, '<del>$1</del>')
-    .replace(/`(.+?)`/g, '<code>$1</code>')
-    .replace(/\n/g, '<br/>')
-
-  processed = processed.replace(/__URL_PLACEHOLDER_(\d+)__/g, (_, idx) => {
-    const url = urls[Number(idx)]
-    const escaped = url.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    return `<a href="${escaped}" target="_blank" rel="noopener noreferrer" style="color:#1264a3;text-decoration:none">${escaped}</a>`
-  })
-
-  return processed
-}
-
 function isGrouped(msg: ChatMessage, prev: ChatMessage | undefined): boolean {
   if (!prev) return false
   if (msg.senderId !== prev.senderId) return false
@@ -135,7 +108,7 @@ function isGrouped(msg: ChatMessage, prev: ChatMessage | undefined): boolean {
 
 export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
   const { user } = useAuthStore()
-  const { messages, setMessages, removeMessage, updateMessage } = useChatStore()
+  const { messages, setMessages, prependMessages, removeMessage, updateMessage } = useChatStore()
   const { inputMinHeight, setInputMinHeight } = useLayoutStore()
 
   const [inputHeight, setInputHeight] = useState(inputMinHeight)
@@ -163,6 +136,7 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
   const messageListRef = useRef<HTMLDivElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const isAtBottomRef = useRef(true)
+  const processedPagesRef = useRef(0)
 
   const { mutate: toggleReaction } = useMutation({
     mutationFn: async ({ messageId, emoji }: { messageId: string; emoji: string }) => {
@@ -593,10 +567,26 @@ export function ChatArea({ workspaceId, channel }: ChatAreaProps) {
   }, [emojiPickerOpen])
 
   useEffect(() => {
+    processedPagesRef.current = 0
+  }, [channel.id])
+
+  useEffect(() => {
     if (!data) return
-    setMessages(channel.id, data.pages.flatMap((p) => p.messages))
-    scrollToBottom()
-  }, [data, channel.id, setMessages, scrollToBottom])
+    const pages = data.pages
+    if (processedPagesRef.current === 0) {
+      setMessages(channel.id, pages.flatMap((p) => p.messages))
+      processedPagesRef.current = pages.length
+      scrollToBottom()
+      return
+    }
+    if (pages.length > processedPagesRef.current) {
+      const newer = pages
+        .slice(processedPagesRef.current)
+        .flatMap((p) => p.messages)
+      if (newer.length > 0) prependMessages(channel.id, newer)
+      processedPagesRef.current = pages.length
+    }
+  }, [data, channel.id, setMessages, prependMessages, scrollToBottom])
 
   useEffect(() => {
     if (isAtBottomRef.current) scrollToBottom()
