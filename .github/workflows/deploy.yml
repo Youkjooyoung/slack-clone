@@ -1,0 +1,57 @@
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-slack-clone
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy via SSH (docker compose)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: SSH into server and deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          script_stop: true
+          script: |
+            set -e
+            cd ~/slack-clone
+            echo "[1/4] 최신 코드 pull"
+            git fetch origin main
+            git reset --hard origin/main
+            echo "[2/4] Docker 이미지 빌드 + 재시작"
+            docker compose pull || true
+            docker compose up -d --build
+            echo "[3/4] nginx reload"
+            sudo nginx -t && sudo systemctl reload nginx || true
+            echo "[4/4] 헬스체크 (최대 60초)"
+            for i in $(seq 1 20); do
+              if curl -fsS -m 3 http://localhost:8080/actuator/health 2>/dev/null | grep -q '"status":"UP"'; then
+                echo "OK (${i}회 시도, $((i*3))초 경과)"
+                exit 0
+              fi
+              sleep 3
+            done
+            echo "헬스체크 60초 타임아웃 — 서비스 상태 수동 확인 필요"
+            docker compose ps || true
+            exit 1
+
+      - name: Notify success
+        if: success()
+        run: echo "✅ slack-clone 배포 완료 — $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
+      - name: Notify failure
+        if: failure()
+        run: |
+          echo "❌ slack-clone 배포 실패 — SSH 로그/서비스 상태 확인 필요"
+          exit 1
