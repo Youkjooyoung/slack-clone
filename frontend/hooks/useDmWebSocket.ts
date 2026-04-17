@@ -32,6 +32,18 @@ export function useDmWebSocket({
   const clientRef = useRef<Client | null>(null)
   const { accessToken } = useAuthStore()
 
+  const onMessageRef = useRef(onMessage)
+  const onUpdateRef = useRef(onUpdate)
+  const onDeleteRef = useRef(onDelete)
+  const onReactionAddRef = useRef(onReactionAdd)
+  const onReactionRemoveRef = useRef(onReactionRemove)
+
+  useEffect(() => { onMessageRef.current = onMessage }, [onMessage])
+  useEffect(() => { onUpdateRef.current = onUpdate }, [onUpdate])
+  useEffect(() => { onDeleteRef.current = onDelete }, [onDelete])
+  useEffect(() => { onReactionAddRef.current = onReactionAdd }, [onReactionAdd])
+  useEffect(() => { onReactionRemoveRef.current = onReactionRemove }, [onReactionRemove])
+
   const sendMessage = useCallback(
     (content: string) => {
       if (!clientRef.current?.connected) return
@@ -58,24 +70,20 @@ export function useDmWebSocket({
       reconnectDelay: 5000,
       onConnect: () => {
         client.subscribe(topic, (msg: IMessage) => {
-          onMessage(JSON.parse(msg.body) as DmMessage)
+          onMessageRef.current(JSON.parse(msg.body) as DmMessage)
         })
         client.subscribe(`${topic}/update`, (msg: IMessage) => {
-          onUpdate(JSON.parse(msg.body) as DmMessage)
+          onUpdateRef.current(JSON.parse(msg.body) as DmMessage)
         })
         client.subscribe(`${topic}/delete`, (msg: IMessage) => {
-          onDelete(msg.body)
+          onDeleteRef.current(msg.body)
         })
-        if (onReactionAdd) {
-          client.subscribe(`${topic}/reactions`, (msg: IMessage) => {
-            onReactionAdd(JSON.parse(msg.body) as Reaction)
-          })
-        }
-        if (onReactionRemove) {
-          client.subscribe(`${topic}/reactions/remove`, (msg: IMessage) => {
-            onReactionRemove(JSON.parse(msg.body) as Reaction)
-          })
-        }
+        client.subscribe(`${topic}/reactions`, (msg: IMessage) => {
+          onReactionAddRef.current?.(JSON.parse(msg.body) as Reaction)
+        })
+        client.subscribe(`${topic}/reactions/remove`, (msg: IMessage) => {
+          onReactionRemoveRef.current?.(JSON.parse(msg.body) as Reaction)
+        })
       },
       onStompError: () => {},
     })
@@ -87,7 +95,7 @@ export function useDmWebSocket({
       client.deactivate()
       clientRef.current = null
     }
-  }, [accessToken, workspaceId, targetUserId, currentUserId, onMessage, onUpdate, onDelete, onReactionAdd, onReactionRemove])
+  }, [accessToken, workspaceId, targetUserId, currentUserId])
 
   return { sendMessage }
 }
