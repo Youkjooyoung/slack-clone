@@ -89,7 +89,11 @@ api.interceptors.response.use(
       const auth = getStoredAuth()
       const refreshToken = auth?.refreshToken
 
-      if (!refreshToken) return Promise.reject(error)
+      if (!refreshToken) {
+        forceLogout()
+        flushQueue(error, null)
+        return Promise.reject(error)
+      }
 
       const { data } = await axios.post<{
         success: boolean
@@ -106,16 +110,26 @@ api.interceptors.response.use(
       return api(original)
     } catch (err) {
       flushQueue(err, null)
-      if (typeof document !== 'undefined') {
-        document.cookie = 'auth-storage=; path=/; max-age=0'
-        window.location.href = '/'
-      }
+      forceLogout()
       return Promise.reject(err)
     } finally {
       isRefreshing = false
     }
   }
 )
+
+function forceLogout() {
+  try {
+    useAuthStore.getState().clearAuth()
+  } catch {
+  }
+  if (typeof document !== 'undefined') {
+    document.cookie = 'auth-storage=; path=/; max-age=0'
+    if (window.location.pathname !== '/') {
+      window.location.href = '/'
+    }
+  }
+}
 
 export interface ApiResponse<T> {
   success: boolean
